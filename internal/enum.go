@@ -15,16 +15,6 @@ type Enum struct {
 	Name      string
 	Comment   string
 	Constants []Constant
-	NameTags  map[string]string
-	ValidTags map[string]string
-}
-
-func (e Enum) NameTag() string {
-	return TagsToString(e.NameTags)
-}
-
-func (e Enum) ValidTag() string {
-	return TagsToString(e.ValidTags)
 }
 
 func enumReplacer(r rune) rune {

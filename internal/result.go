@@ -1,7 +1,6 @@
 package golang
 
 import (
-	"bufio"
 	"fmt"
 	"sort"
 	"strings"
@@ -28,14 +27,8 @@ func buildEnums(req *plugin.GenerateRequest, options *opts.Options) []Enum {
 			}
 
 			e := Enum{
-				Name:      StructName(enumName, options),
-				Comment:   enum.Comment,
-				NameTags:  map[string]string{},
-				ValidTags: map[string]string{},
-			}
-			if options.EmitJsonTags {
-				e.NameTags["json"] = JSONTagName(enumName, options)
-				e.ValidTags["json"] = JSONTagName("valid", options)
+				Name:    StructName(enumName, options),
+				Comment: enum.Comment,
 			}
 
 			seen := make(map[string]struct{}, len(enum.Vals))
@@ -90,21 +83,11 @@ func buildStructs(req *plugin.GenerateRequest, options *opts.Options) []Struct {
 				Comment: table.Comment,
 			}
 			for _, column := range table.Columns {
-				tags := map[string]string{}
-				if options.EmitDbTags {
-					tags["db"] = column.Name
-				}
-				if options.EmitJsonTags {
-					tags["json"] = JSONTagName(column.Name, options)
-				}
-				addExtraGoStructTags(tags, req, options, column)
 				s.Fields = append(
 					s.Fields, Field{
 						Name:    StructName(column.Name, options),
-						Type:    goType(req, options, column),
-						Tags:    tags,
+						Type:    gqlType(req, options, column),
 						Comment: column.Comment,
-						GqlType: gqlType(req, options, column),
 					},
 				)
 			}
@@ -200,51 +183,39 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 			continue
 		}
 
-		var constantName string
-		if options.EmitExportedQueries {
-			constantName = sdk.Title(query.Name)
-		} else {
-			constantName = sdk.LowerTitle(query.Name)
-		}
-
 		comments := query.Comments
-		if options.EmitSqlAsComment {
-			if len(comments) == 0 {
-				comments = append(comments, query.Name)
-			}
-			comments = append(comments, " ")
-			scanner := bufio.NewScanner(strings.NewReader(query.Text))
-			for scanner.Scan() {
-				line := scanner.Text()
-				comments = append(comments, "  "+line)
-			}
-			if err := scanner.Err(); err != nil {
-				return nil, err
-			}
-		}
+		//if options.EmitSqlAsComment {
+		//	if len(comments) == 0 {
+		//		comments = append(comments, query.Name)
+		//	}
+		//	comments = append(comments, " ")
+		//	scanner := bufio.NewScanner(strings.NewReader(query.Text))
+		//	for scanner.Scan() {
+		//		line := scanner.Text()
+		//		comments = append(comments, "  "+line)
+		//	}
+		//	if err := scanner.Err(); err != nil {
+		//		return nil, err
+		//	}
+		//}
 
 		gq := Query{
-			Cmd:          query.Cmd,
-			ConstantName: constantName,
-			FieldName:    sdk.LowerTitle(query.Name) + "Stmt",
-			MethodName:   query.Name,
-			SourceName:   query.Filename,
-			SQL:          query.Text,
-			Comments:     comments,
-			Table:        query.InsertIntoTable,
+			Cmd:        query.Cmd,
+			FieldName:  sdk.LowerTitle(query.Name) + "Stmt",
+			MethodName: query.Name,
+			SourceName: query.Filename,
+			Comments:   comments,
 		}
-		sqlpkg := parseDriver(options.SqlPackage)
 
 		qpl := int(*options.QueryParameterLimit)
 
 		if len(query.Params) == 1 && qpl != 0 {
 			p := query.Params[0]
 			gq.Arg = QueryValue{
-				Name:      escape(paramName(p)),
-				DBName:    p.Column.GetName(),
-				Typ:       goType(req, options, p.Column),
-				SQLDriver: sqlpkg,
-				Column:    p.Column,
+				Name:   escape(paramName(p)),
+				DBName: p.Column.GetName(),
+				Typ:    gqlType(req, options, p.Column),
+				Column: p.Column,
 			}
 		} else if len(query.Params) >= 1 {
 			var cols []goColumn
@@ -256,16 +227,14 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 					},
 				)
 			}
-			s, err := columnsToStruct(req, options, gq.MethodName+"Params", cols, false)
+			s, err := columnsToStruct(req, options, gq.MethodName+"Input", cols, false)
 			if err != nil {
 				return nil, err
 			}
 			gq.Arg = QueryValue{
-				Emit:        true,
-				Name:        "arg",
-				Struct:      s,
-				SQLDriver:   sqlpkg,
-				EmitPointer: options.EmitParamsStructPointers,
+				Emit:   true,
+				Name:   "arg",
+				Struct: s,
 			}
 
 			if len(query.Params) <= qpl {
@@ -278,10 +247,9 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 			name := columnName(c, 0)
 			name = strings.Replace(name, "$", "_", -1)
 			gq.Ret = QueryValue{
-				Name:      escape(name),
-				DBName:    name,
-				Typ:       goType(req, options, c),
-				SQLDriver: sqlpkg,
+				Name:   escape(name),
+				DBName: name,
+				Typ:    gqlType(req, options, c),
 			}
 		} else if putOutColumns(query) {
 			var gs *Struct
@@ -295,7 +263,7 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 				for i, f := range s.Fields {
 					c := query.Columns[i]
 					sameName := f.Name == StructName(columnName(c, i), options)
-					sameType := f.Type == goType(req, options, c)
+					sameType := f.Type == gqlType(req, options, c)
 					sameTable := sdk.SameTableName(c.Table, s.Table, req.Catalog.DefaultSchema)
 					if !sameName || !sameType || !sameTable {
 						same = false
@@ -326,11 +294,9 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 				emit = true
 			}
 			gq.Ret = QueryValue{
-				Emit:        emit,
-				Name:        "i",
-				Struct:      gs,
-				SQLDriver:   sqlpkg,
-				EmitPointer: options.EmitResultStructPointers,
+				Emit:   emit,
+				Name:   "i",
+				Struct: gs,
 			}
 		}
 
@@ -397,18 +363,10 @@ func columnsToStruct(
 			tagName = fmt.Sprintf("%s_%d", tagName, suffix)
 			fieldName = fmt.Sprintf("%s_%d", fieldName, suffix)
 		}
-		tags := map[string]string{}
-		if options.EmitDbTags {
-			tags["db"] = tagName
-		}
-		if options.EmitJsonTags {
-			tags["json"] = JSONTagName(tagName, options)
-		}
-		addExtraGoStructTags(tags, req, options, c.Column)
+
 		f := Field{
 			Name:   fieldName,
 			DBName: colName,
-			Tags:   tags,
 			Column: c.Column,
 		}
 		if c.embed == nil {

@@ -8,36 +8,6 @@ import (
 	"github.com/sqlc-dev/plugin-sdk-go/sdk"
 )
 
-func addExtraGoStructTags(
-	tags map[string]string,
-	req *plugin.GenerateRequest,
-	options *opts.Options,
-	col *plugin.Column,
-) {
-	for _, override := range options.Overrides {
-		oride := override.ShimOverride
-		if oride.GoType.StructTags == nil {
-			continue
-		}
-		if !override.Matches(col.Table, req.Catalog.DefaultSchema) {
-			// Different table.
-			continue
-		}
-		cname := col.Name
-		if col.OriginalName != "" {
-			cname = col.OriginalName
-		}
-		if !sdk.MatchString(oride.ColumnName, cname) {
-			// Different column.
-			continue
-		}
-		// Add the extra tags.
-		for k, v := range oride.GoType.StructTags {
-			tags[k] = v
-		}
-	}
-}
-
 func goType(req *plugin.GenerateRequest, options *opts.Options, col *plugin.Column) string {
 	// Check if the column's type has been overridden
 	for _, override := range options.Overrides {

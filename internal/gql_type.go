@@ -88,10 +88,13 @@ func gqlInnerType(req *plugin.GenerateRequest, options *opts.Options, col *plugi
 		return "Boolean"
 	case "string":
 		return "String"
-	case "time.Time":
+	case "time.Time", "sql.NullTime":
 		return "Time"
-	case "uuid.UUID":
+	case "uuid.UUID", "uuid.NullUUID":
 		return "UUID"
+
+	case "netip.Addr", "*netip.Addr", "netip.Prefix", "*netip.Prefix", "net.HardwareAddr", "pgtype.Range[pgtype.Date]", "pgtype.Multirange[pgtype.Range[pgtype.Date]]":
+		return "String"
 
 	case "sql.NullInt8", "sql.NullInt16", "sql.NullInt32", "sql.NullInt64", "sql.NullUint", "sql.NullUint8", "sql.NullUint16", "sql.NullUint32", "sql.NullUint64":
 		return "Int"
@@ -101,9 +104,10 @@ func gqlInnerType(req *plugin.GenerateRequest, options *opts.Options, col *plugi
 		return "Boolean"
 	case "sql.NullString":
 		return "String"
-	case "[]byte", "pgtype.JSON", "pgtype.JSONB", "json.RawMessage", "interface{}", "pqtype.NullRawMessage":
+	case "[]byte", "pgtype.JSON", "pgtype.JSONB", "json.RawMessage", "pqtype.NullRawMessage":
 		return "JSON"
-
+	case "interface{}":
+		return "Unknown"
 	}
 	return "String"
 }

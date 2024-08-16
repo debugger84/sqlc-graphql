@@ -15,7 +15,7 @@
                 {{if .Arg.EmitStruct}}
                     input {{.Arg.Type}} @goModel(model: "{{$.ModelPackage}}.{{.Arg.Type}}") {
                     {{- range .Arg.Struct.Fields -}}
-                        {{.Name}}: {{.GqlType}}
+                        {{.Name}}: {{.Type}}
                     {{- end}}
                     }
                 {{end}}
@@ -23,7 +23,7 @@
                 {{if .Ret.EmitStruct}}
                     type {{.Ret.Type}} @goModel(model: "{{$.ModelPackage}}.{{.Ret.Type}}") {
                     {{- range .Ret.Struct.Fields -}}
-                        {{.Name}}: {{.GqlType}}
+                        {{.Name}}: {{.Type}}
                     {{- end}}
                     }
                 {{end}}

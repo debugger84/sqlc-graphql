@@ -41,15 +41,9 @@ func generateGql(
 		return nil, err
 	}
 	structs = filterStructs(structs, excludedFields)
-	i := &importer{
-		Options: options,
-		Queries: queries,
-		Enums:   enums,
-		Structs: structs,
-	}
 
 	tctx := gqlTmplCtx{
-		ModelPackage:    options.GqlModelPackage,
+		ModelPackage:    options.Package,
 		Enums:           enums,
 		Structs:         structs,
 		SqlcVersion:     req.SqlcVersion,
@@ -59,10 +53,6 @@ func generateGql(
 
 	funcMap := template.FuncMap{
 		"lowerTitle": sdk.LowerTitle,
-		"comment":    sdk.DoubleSlashComment,
-		"escape":     sdk.EscapeBacktick,
-		"imports":    i.Imports,
-		"hasImports": i.HasImports,
 		"hasPrefix":  strings.HasPrefix,
 	}
 
@@ -71,7 +61,7 @@ func generateGql(
 			Funcs(funcMap).
 			ParseFS(
 				templates,
-				"templates/graphql/*.tmpl",
+				"templates/*.tmpl",
 			),
 	)
 
@@ -101,7 +91,7 @@ func generateGql(
 		return nil, err
 	}
 
-	if options.GqlGenCommonParts {
+	if options.GenCommonParts {
 		if err := execute("common.graphql", "commonGqlFile"); err != nil {
 			return nil, err
 		}
@@ -119,9 +109,9 @@ func generateGql(
 	resp := plugin.GenerateResponse{}
 
 	for filename, code := range output {
-		if options.GqlOut != "" {
-			filename = options.GqlOut + "/" + filename
-		}
+		//if options.Out != "" {
+		//	filename = options.Out + "/" + filename
+		//}
 		resp.Files = append(
 			resp.Files, &plugin.File{
 				Name:     filename,
@@ -135,10 +125,10 @@ func generateGql(
 
 func getGqlExcluded(options *opts.Options) (map[string][]string, error) {
 	res := make(map[string][]string)
-	if options == nil || options.GqlExclude == nil {
+	if options == nil || options.Exclude == nil {
 		return nil, nil
 	}
-	for _, exclude := range options.GqlExclude {
+	for _, exclude := range options.Exclude {
 		parts := strings.Split(exclude, ".")
 
 		if len(parts) == 0 {

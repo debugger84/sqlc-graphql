@@ -10,13 +10,12 @@ import (
 )
 
 type QueryValue struct {
-	Emit        bool
-	EmitPointer bool
-	Name        string
-	DBName      string // The name of the field in the database. Only set if Struct==nil.
-	Struct      *Struct
-	Typ         string
-	SQLDriver   opts.SQLDriver
+	Emit      bool
+	Name      string
+	DBName    string // The name of the field in the database. Only set if Struct==nil.
+	Struct    *Struct
+	Typ       string
+	SQLDriver opts.SQLDriver
 
 	// Column is kept so late in the generation process around to differentiate
 	// between mysql slices and pg arrays
@@ -29,10 +28,6 @@ func (v QueryValue) EmitStruct() bool {
 
 func (v QueryValue) IsStruct() bool {
 	return v.Struct != nil
-}
-
-func (v QueryValue) IsPointer() bool {
-	return v.EmitPointer && v.Struct != nil
 }
 
 func (v QueryValue) isEmpty() bool {
@@ -97,16 +92,11 @@ func (v QueryValue) Type() string {
 
 func (v *QueryValue) DefineType() string {
 	t := v.Type()
-	if v.IsPointer() {
-		return "*" + t
-	}
+
 	return t
 }
 
 func (v *QueryValue) ReturnName() string {
-	if v.IsPointer() {
-		return "&" + escape(v.Name)
-	}
 	return escape(v.Name)
 }
 
@@ -258,41 +248,17 @@ func (v QueryValue) VariableForField(f Field) string {
 
 // A struct used to generate methods and fields on the Queries struct
 type Query struct {
-	Cmd          string
-	Comments     []string
-	MethodName   string
-	FieldName    string
-	ConstantName string
-	SQL          string
-	SourceName   string
-	Ret          QueryValue
-	Arg          QueryValue
-	// Used for :copyfrom
-	Table *plugin.Identifier
+	Cmd        string
+	Comments   []string
+	MethodName string
+	FieldName  string
+	SourceName string
+	Ret        QueryValue
+	Arg        QueryValue
 }
 
 func (q Query) hasRetType() bool {
 	scanned := q.Cmd == metadata.CmdOne || q.Cmd == metadata.CmdMany ||
 		q.Cmd == metadata.CmdBatchMany || q.Cmd == metadata.CmdBatchOne
 	return scanned && !q.Ret.isEmpty()
-}
-
-func (q Query) TableIdentifierAsGoSlice() string {
-	escapedNames := make([]string, 0, 3)
-	for _, p := range []string{q.Table.Catalog, q.Table.Schema, q.Table.Name} {
-		if p != "" {
-			escapedNames = append(escapedNames, fmt.Sprintf("%q", p))
-		}
-	}
-	return "[]string{" + strings.Join(escapedNames, ", ") + "}"
-}
-
-func (q Query) TableIdentifierForMySQL() string {
-	escapedNames := make([]string, 0, 3)
-	for _, p := range []string{q.Table.Catalog, q.Table.Schema, q.Table.Name} {
-		if p != "" {
-			escapedNames = append(escapedNames, fmt.Sprintf("`%s`", p))
-		}
-	}
-	return strings.Join(escapedNames, ".")
 }

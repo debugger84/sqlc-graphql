@@ -3,10 +3,8 @@ package golang
 import (
 	"fmt"
 	"regexp"
-	"sort"
 	"strings"
 
-	"github.com/debugger84/sqlc-graphql/internal/opts"
 	"github.com/sqlc-dev/plugin-sdk-go/plugin"
 )
 
@@ -14,61 +12,20 @@ type Field struct {
 	Name    string // CamelCased name for Go
 	DBName  string // Name as used in the DB
 	Type    string
-	GqlType string
-	Tags    map[string]string
 	Comment string
 	Column  *plugin.Column
 	// EmbedFields contains the embedded fields that require scanning.
 	EmbedFields []Field
 }
 
-func (gf Field) Tag() string {
-	return TagsToString(gf.Tags)
-}
-
 func (gf Field) HasSqlcSlice() bool {
 	return gf.Column.IsSqlcSlice
-}
-
-func TagsToString(tags map[string]string) string {
-	if len(tags) == 0 {
-		return ""
-	}
-	tagParts := make([]string, 0, len(tags))
-	for key, val := range tags {
-		tagParts = append(tagParts, fmt.Sprintf("%s:%q", key, val))
-	}
-	sort.Strings(tagParts)
-	return strings.Join(tagParts, " ")
-}
-
-func JSONTagName(name string, options *opts.Options) string {
-	style := options.JsonTagsCaseStyle
-	idUppercase := options.JsonTagsIdUppercase
-	if style == "" || style == "none" {
-		return name
-	} else {
-		return SetJSONCaseStyle(name, style, idUppercase)
-	}
 }
 
 func SetCaseStyle(name string, style string) string {
 	switch style {
 	case "camel":
 		return toCamelCase(name)
-	case "pascal":
-		return toPascalCase(name)
-	case "snake":
-		return toSnakeCase(name)
-	default:
-		panic(fmt.Sprintf("unsupported JSON tags case style: '%s'", style))
-	}
-}
-
-func SetJSONCaseStyle(name string, style string, idUppercase bool) string {
-	switch style {
-	case "camel":
-		return toJsonCamelCase(name, idUppercase)
 	case "pascal":
 		return toPascalCase(name)
 	case "snake":
