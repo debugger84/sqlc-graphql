@@ -13,11 +13,11 @@
         {{- if $.OutputQuery .SourceName -}}
             {{if ne (hasPrefix .Cmd ":batch") true}}
                 {{if .Arg.EmitStruct}}
-                    input {{.Arg.Type}} @goModel(model: "{{$.ModelPackage}}.{{.Arg.Type}}") {
-                    {{- range .Arg.Struct.Fields -}}
-                        {{.Name}}: {{.Type}}
-                    {{- end}}
-                    }
+input {{.Arg.Type}} @goModel(model: "{{$.ModelPackage}}.{{$.ParamsName .Arg.Type}}") {
+{{- range .Arg.Struct.Fields }}
+    {{lowerTitle .Name}}: {{.Type}}
+{{- end}}
+}
                 {{end}}
 
                 {{if .Ret.EmitStruct}}

@@ -233,7 +233,7 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 			}
 			gq.Arg = QueryValue{
 				Emit:   true,
-				Name:   "arg",
+				Name:   "request",
 				Struct: s,
 			}
 
@@ -270,7 +270,9 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 					}
 				}
 				if same {
-					gs = &s
+					buf := s
+					buf.Name = s.Name + "!"
+					gs = &buf
 					break
 				}
 			}
@@ -287,7 +289,7 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 					)
 				}
 				var err error
-				gs, err = columnsToStruct(req, options, gq.MethodName+"Row", columns, true)
+				gs, err = columnsToStruct(req, options, gq.MethodName+"Row!", columns, true)
 				if err != nil {
 					return nil, err
 				}
@@ -370,7 +372,7 @@ func columnsToStruct(
 			Column: c.Column,
 		}
 		if c.embed == nil {
-			f.Type = goType(req, options, c.Column)
+			f.Type = gqlType(req, options, c.Column)
 		} else {
 			f.Type = c.embed.modelType
 			f.EmbedFields = c.embed.fields

@@ -18,7 +18,7 @@
     {{- end }}
 enum {{.Name}}  @goModel(model: "{{$.ModelPackage}}.{{.Name}}") {
 {{- range .Constants }}
-    {{.Value}}
+    {{lowerTitle .Value}}
 {{- end }}
 }
 {{end}}
@@ -36,7 +36,7 @@ type {{.Name}} @goModel(model: "{{$.ModelPackage}}.{{.Name}}") {
     {{ .Comment}}
     """
     {{- end }}
-    {{.Name}}: {{.Type}}
+    {{lowerTitle .Name}}: {{.Type}}
 {{- end}}
 }
 {{end}}

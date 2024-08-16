@@ -28,6 +28,9 @@ type gqlTmplCtx struct {
 func (t *gqlTmplCtx) OutputQuery(sourceName string) bool {
 	return t.SourceName == sourceName
 }
+func (t *gqlTmplCtx) ParamsName(InputName string) string {
+	return strings.TrimRight(InputName, "Input") + "Params"
+}
 
 func generateGql(
 	req *plugin.GenerateRequest,
