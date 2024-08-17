@@ -4,42 +4,57 @@
 #   sqlc {{.SqlcVersion}}
 {{end}}# source: {{.SourceName}}
 
-    {{template "gqlQueryCode" . }}
+{{template "gqlQuery" . }}
+{{template "gqlInputTypes" . }}
 {{end}}
 
-{{define "gqlQueryCode"}}
-    {{range .GoQueries}}
+{{define "gqlQuery"}}
+    {{- /*gotype:github.com/debugger84/sqlc-graphql/internal.gqlTmplCtx*/ -}}
+    {{- range .ExtendedTypes -}}
+        {{- $currentExtendedType := . }}
+extend type {{.}} {
+            {{- range $.GoQueries -}}
+                {{- if ne $currentExtendedType .ExtendedType -}}
+                    {{- continue -}}
+                {{- end -}}
+{{- if eq .Cmd ":one"}}
+    {{.ResolverName}}({{.Arg.Pair}}): {{.Ret.DefineType}}
+{{- end -}}
+{{- if eq .Cmd ":many"}}
+    {{.ResolverName}}({{.Arg.Pair}}): [{{.Ret.DefineType}}]!
+{{- end -}}
+{{- if eq .Cmd ":exec"}}
+    {{.ResolverName}}({{.Arg.Pair}}): Boolean!
+{{- end -}}
+{{- if eq .Cmd ":execrows"}}
+    {{.ResolverName}}({{.Arg.Pair}}): Int!
+{{- end -}}
+            {{- end }}
+}
+    {{end}}
+{{end}}
+
+
+{{define "gqlInputTypes"}}
+    {{- range .GoQueries }}
         {{- /*gotype:github.com/debugger84/sqlc-graphql/internal.Query*/ -}}
         {{- if $.OutputQuery .SourceName -}}
-            {{if ne (hasPrefix .Cmd ":batch") true}}
-                {{if .Arg.EmitStruct}}
-input {{.Arg.Type}} @goModel(model: "{{$.ModelPackage}}.{{$.ParamsName .Arg.Type}}") {
+            {{- if ne (hasPrefix .Cmd ":batch") true -}}
+                {{- if .Arg.EmitStruct}}
+input {{.Arg.Type}} @goModel(model: "{{.Arg.ModelPath}}") {
 {{- range .Arg.Struct.Fields }}
     {{lowerTitle .Name}}: {{.Type}}
 {{- end}}
 }
-                {{end}}
-
-                {{if .Ret.EmitStruct}}
-                    type {{.Ret.Type}} @goModel(model: "{{$.ModelPackage}}.{{.Ret.Type}}") {
-                    {{- range .Ret.Struct.Fields -}}
-                        {{.Name}}: {{.Type}}
-                    {{- end}}
-                    }
-                {{end}}
-            {{end}}
-            {{if eq .Cmd ":one"}}
-                {{.MethodName}}({{.Arg.Pair}}): {{.Ret.DefineType}}
-            {{end}}
-            {{if eq .Cmd ":many"}}
-                {{.MethodName}}({{.Arg.Pair}}): [{{.Ret.DefineType}}]!
-            {{end}}
-            {{if eq .Cmd ":exec"}}
-                {{.MethodName}}({{.Arg.Pair}}): Boolean!
-            {{end}}
-            {{if eq .Cmd ":execrows"}}
-                {{.MethodName}}({{.Arg.Pair}}): Int!
-            {{end}}
-        {{end}}
-    {{end}}
+                {{ end -}}
+                {{- if .Ret.EmitStruct -}}
+type {{.Ret.Type}} @goModel(model: "{{$.ModelPackage}}.{{.Ret.Type}}") {
+{{- range .Ret.Struct.Fields -}}
+    {{.Name}}: {{.Type}}
+{{- end}}
+}
+                {{ end -}}
+            {{- end }}
+        {{- end -}}
+    {{ end }}
 {{end}}

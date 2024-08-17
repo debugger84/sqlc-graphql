@@ -13,11 +13,12 @@ import (
 )
 
 type gqlTmplCtx struct {
-	ModelPackage string
-	Enums        []Enum
-	Structs      []Struct
-	GoQueries    []Query
-	SqlcVersion  string
+	ModelPackage  string
+	Enums         []Enum
+	Structs       []Struct
+	GoQueries     []Query
+	ExtendedTypes []string
+	SqlcVersion   string
 
 	// TODO: Race conditions
 	SourceName string
@@ -74,6 +75,8 @@ func generateGql(
 		var b bytes.Buffer
 		w := bufio.NewWriter(&b)
 		tctx.SourceName = name
+		tctx.GoQueries = filterQueries(name, queries)
+		tctx.ExtendedTypes = getExtendedTypes(tctx.GoQueries)
 		err := tmpl.ExecuteTemplate(w, templateName, &tctx)
 		w.Flush()
 		if err != nil {
@@ -112,9 +115,6 @@ func generateGql(
 	resp := plugin.GenerateResponse{}
 
 	for filename, code := range output {
-		//if options.Out != "" {
-		//	filename = options.Out + "/" + filename
-		//}
 		resp.Files = append(
 			resp.Files, &plugin.File{
 				Name:     filename,
@@ -124,6 +124,30 @@ func generateGql(
 	}
 
 	return &resp, nil
+}
+
+func filterQueries(sourceName string, queries []Query) []Query {
+	var result []Query
+	for _, q := range queries {
+		if q.SourceName == sourceName {
+			result = append(result, q)
+		}
+	}
+	return result
+}
+
+func getExtendedTypes(queries []Query) []string {
+	var result []string
+	var unique = make(map[string]struct{})
+	for _, q := range queries {
+		if _, ok := unique[q.ExtendedType]; ok {
+			continue
+		}
+		result = append(result, q.ExtendedType)
+		unique[q.ExtendedType] = struct{}{}
+	}
+	slices.Sort(result)
+	return result
 }
 
 func getGqlExcluded(options *opts.Options) (map[string][]string, error) {

@@ -15,6 +15,7 @@ type QueryValue struct {
 	DBName    string // The name of the field in the database. Only set if Struct==nil.
 	Struct    *Struct
 	Typ       string
+	ModelPath string
 	SQLDriver opts.SQLDriver
 
 	// Column is kept so late in the generation process around to differentiate
@@ -249,13 +250,14 @@ func (v QueryValue) VariableForField(f Field) string {
 
 // A struct used to generate methods and fields on the Queries struct
 type Query struct {
-	Cmd        string
-	Comments   []string
-	MethodName string
-	FieldName  string
-	SourceName string
-	Ret        QueryValue
-	Arg        QueryValue
+	Cmd          string
+	Comments     []string
+	MethodName   string
+	SourceName   string
+	ExtendedType string
+	ResolverName string
+	Ret          QueryValue
+	Arg          QueryValue
 }
 
 func (q Query) hasRetType() bool {

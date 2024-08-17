@@ -184,27 +184,31 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 		}
 
 		comments := query.Comments
-		//if options.EmitSqlAsComment {
-		//	if len(comments) == 0 {
-		//		comments = append(comments, query.Name)
-		//	}
-		//	comments = append(comments, " ")
-		//	scanner := bufio.NewScanner(strings.NewReader(query.Text))
-		//	for scanner.Scan() {
-		//		line := scanner.Text()
-		//		comments = append(comments, "  "+line)
-		//	}
-		//	if err := scanner.Err(); err != nil {
-		//		return nil, err
-		//	}
-		//}
+		var extendedType string
+		resolverName := query.Name
+		for _, comment := range comments {
+			parts := strings.Split(comment, ":")
+			if len(parts) > 1 && strings.Trim(parts[0], " ") == "gql" {
+				gql := strings.Trim(parts[1], " ")
+				resolverInfo := strings.Split(gql, ".")
+				extendedType = resolverInfo[0]
+				if len(resolverInfo) > 1 {
+					resolverName = resolverInfo[1]
+				}
+				break
+			}
+		}
+		if extendedType == "" {
+			continue
+		}
 
 		gq := Query{
-			Cmd:        query.Cmd,
-			FieldName:  sdk.LowerTitle(query.Name) + "Stmt",
-			MethodName: query.Name,
-			SourceName: query.Filename,
-			Comments:   comments,
+			Cmd:          query.Cmd,
+			Comments:     comments,
+			MethodName:   query.Name,
+			SourceName:   query.Filename,
+			ExtendedType: extendedType,
+			ResolverName: resolverName,
 		}
 
 		qpl := int(*options.QueryParameterLimit)
@@ -227,14 +231,15 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 					},
 				)
 			}
-			s, err := columnsToStruct(req, options, gq.MethodName+"Input", cols, false)
+			s, err := columnsToStruct(req, options, resolverName+"Input", cols, false)
 			if err != nil {
 				return nil, err
 			}
 			gq.Arg = QueryValue{
-				Emit:   true,
-				Name:   "request",
-				Struct: s,
+				Emit:      true,
+				Name:      "request",
+				Struct:    s,
+				ModelPath: options.Package + "." + gq.MethodName + "Params",
 			}
 
 			if len(query.Params) <= qpl {
