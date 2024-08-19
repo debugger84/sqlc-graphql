@@ -126,10 +126,40 @@ func generateGql(
 	return &resp, nil
 }
 
+func extractGqlCommentsOnly(comments []string) []string {
+	var result []string
+	start := false
+	for _, c := range comments {
+		partsStart := strings.Split(c, "gql-comment")
+		if len(partsStart) > 1 {
+			start = true
+			c = strings.TrimPrefix(partsStart[1], ":")
+			c = strings.TrimSpace(c)
+			if c == "" {
+				continue
+			}
+		}
+		partsEnd := strings.Split(c, "gql-end")
+		if len(partsEnd) > 1 {
+			start = false
+			c = partsEnd[0]
+		}
+
+		if !start {
+			continue
+		}
+		//c = strings.TrimSpace(c)
+		result = append(result, c)
+	}
+	return result
+
+}
+
 func filterQueries(sourceName string, queries []Query) []Query {
 	var result []Query
 	for _, q := range queries {
 		if q.SourceName == sourceName {
+			q.Comments = extractGqlCommentsOnly(q.Comments)
 			result = append(result, q)
 		}
 	}
