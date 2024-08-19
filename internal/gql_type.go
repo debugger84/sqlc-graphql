@@ -46,7 +46,7 @@ func gqlType(req *plugin.GenerateRequest, options *opts.Options, col *plugin.Col
 	for _, override := range options.Overrides {
 		oride := override.ShimOverride
 
-		if oride.GoType.TypeName == "" {
+		if override.GqlType == "" {
 			continue
 		}
 		cname := col.Name
@@ -55,7 +55,7 @@ func gqlType(req *plugin.GenerateRequest, options *opts.Options, col *plugin.Col
 		}
 		sameTable := override.Matches(col.Table, req.Catalog.DefaultSchema)
 		if oride.Column != "" && sdk.MatchString(oride.ColumnName, cname) && sameTable {
-			tn := oride.GoType.TypeName
+			tn := override.GqlType
 			if col.NotNull {
 				tn += "!"
 			}

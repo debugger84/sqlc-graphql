@@ -34,7 +34,8 @@ type Override struct {
 	Deprecated_Null bool `json:"null" yaml:"null"`
 
 	// fully qualified name of the column, e.g. `accounts.id`
-	Column string `json:"column" yaml:"column"`
+	Column  string `json:"column" yaml:"column"`
+	GqlType string `json:"gql_type" yaml:"gql_type"`
 
 	ColumnName   *pattern.Match `json:"-"`
 	TableCatalog *pattern.Match `json:"-"`
@@ -79,7 +80,10 @@ func (o *Override) Matches(n *plugin.Identifier, defaultSchema string) bool {
 func (o *Override) parse(req *plugin.GenerateRequest) (err error) {
 	// validate deprecated postgres_type field
 	if o.Deprecated_PostgresType != "" {
-		fmt.Fprintf(os.Stderr, "WARNING: \"postgres_type\" is deprecated. Instead, use \"db_type\" to specify a type override.\n")
+		fmt.Fprintf(
+			os.Stderr,
+			"WARNING: \"postgres_type\" is deprecated. Instead, use \"db_type\" to specify a type override.\n",
+		)
 		if o.DBType != "" {
 			return fmt.Errorf(`Type override configurations cannot have "db_type" and "postres_type" together. Use "db_type" alone`)
 		}
@@ -143,7 +147,10 @@ func (o *Override) parse(req *plugin.GenerateRequest) (err error) {
 				return err
 			}
 		default:
-			return fmt.Errorf("Override `column` specifier %q is not the proper format, expected '[catalog.][schema.]tablename.colname'", o.Column)
+			return fmt.Errorf(
+				"Override `column` specifier %q is not the proper format, expected '[catalog.][schema.]tablename.colname'",
+				o.Column,
+			)
 		}
 	}
 

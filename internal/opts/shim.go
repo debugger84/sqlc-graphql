@@ -19,6 +19,7 @@ type ShimOverride struct {
 	ColumnName string
 	Unsigned   bool
 	GoType     *ShimGoType
+	GqlType    string
 }
 
 func shimOverride(req *plugin.GenerateRequest, o *Override) *ShimOverride {
