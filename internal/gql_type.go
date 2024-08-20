@@ -19,28 +19,6 @@ type GqlStruct struct {
 	Fields  []GqlField
 }
 
-//
-//func convertStructs(structs []Struct) []GqlStruct {
-//	var gqlStructs []GqlStruct
-//	for _, s := range structs {
-//		var gqlFields []GqlField
-//		for _, f := range s.Fields {
-//			gqlFields = append(gqlFields, GqlField{
-//				Name:    f.Name,
-//				Type:    gqlType(nil, nil, f),
-//				Comment: f.Comment,
-//			})
-//		}
-//		gqlStructs = append(gqlStructs, GqlStruct{
-//			Name:    s.Name,
-//			Comment: s.Comment,
-//			Fields:  gqlFields,
-//		})
-//	}
-//	return gqlStructs
-//
-//}
-
 func gqlType(req *plugin.GenerateRequest, options *opts.Options, col *plugin.Column) string {
 	// Check if the column's type has been overridden
 	for _, override := range options.Overrides {
@@ -109,5 +87,5 @@ func gqlInnerType(req *plugin.GenerateRequest, options *opts.Options, col *plugi
 	case "interface{}":
 		return "Unknown"
 	}
-	return "String"
+	return gotype
 }
