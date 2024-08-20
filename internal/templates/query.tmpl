@@ -3,7 +3,6 @@
 {{if not .OmitSqlcVersion}}# versions:
 #   sqlc {{.SqlcVersion}}
 {{end}}# source: {{.SourceName}}
-
 {{template "gqlQuery" . }}
 {{template "gqlInputTypes" . }}
 {{end}}
@@ -25,16 +24,16 @@ extend type {{.}} {
     """
 {{- end -}}
 {{- if eq .Cmd ":one"}}
-    {{.ResolverName}}({{.Arg.Pair}}): {{.Ret.DefineType}}
+    {{.ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: {{.Ret.DefineType}}
 {{- end -}}
 {{- if eq .Cmd ":many"}}
-    {{.ResolverName}}({{.Arg.Pair}}): [{{.Ret.DefineType}}]!
+    {{.ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: [{{.Ret.DefineType}}]!
 {{- end -}}
 {{- if eq .Cmd ":exec"}}
-    {{.ResolverName}}({{.Arg.Pair}}): Boolean!
+    {{.ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: Boolean!
 {{- end -}}
 {{- if eq .Cmd ":execrows"}}
-    {{.ResolverName}}({{.Arg.Pair}}): Int!
+    {{.ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: Int!
 {{- end -}}
             {{- end }}
 }

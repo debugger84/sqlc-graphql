@@ -148,7 +148,7 @@ func extractGqlCommentsOnly(comments []string) []string {
 		if !start {
 			continue
 		}
-		//c = strings.TrimSpace(c)
+
 		result = append(result, c)
 	}
 	return result
