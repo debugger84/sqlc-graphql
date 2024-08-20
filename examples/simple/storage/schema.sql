@@ -5,6 +5,6 @@ CREATE TABLE authors
     id   BIGSERIAL PRIMARY KEY,
     name text NOT NULL,
     bio  text,
-    status author_status DEFAULT 'active',
+    status author_status NOT NULL DEFAULT 'active',
     created_at TIMESTAMPTZ DEFAULT now()
 );

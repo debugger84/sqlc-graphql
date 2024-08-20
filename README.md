@@ -78,3 +78,5 @@ sqlc -f ./tutorial/sqlc.yaml generate
 ```
 
 It will generate the GraphQL schema and the queries in the graphql folder.
+
+See the examples folder for more information.

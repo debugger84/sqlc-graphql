@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.27.0
 
-package tutorial
+package storage
 
 import (
 	"database/sql"
@@ -62,9 +62,9 @@ func AllAuthorStatusValues() []AuthorStatus {
 }
 
 type Author struct {
-	ID        int64            `json:"id"`
-	Name      string           `json:"name"`
-	Bio       sql.NullString   `json:"bio"`
-	Status    NullAuthorStatus `json:"status"`
-	CreatedAt sql.NullTime     `json:"createdAt"`
+	ID        int64          `json:"id"`
+	Name      string         `json:"name"`
+	Bio       sql.NullString `json:"bio"`
+	Status    AuthorStatus   `json:"status"`
+	CreatedAt sql.NullTime   `json:"createdAt"`
 }

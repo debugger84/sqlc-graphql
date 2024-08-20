@@ -4,7 +4,6 @@
 #   sqlc v1.27.0
 # source: query.sql
 
-
 extend type Mutation {
     CreateAuthor(request: CreateAuthorInput!): Author!
     DeactivateAuthor(id: Int!): Author!
@@ -14,17 +13,17 @@ extend type Mutation {
     
 extend type Query {
     GetAuthor(id: Int!): Author!
-    ListAuthors(): [Author!]!
+    ListAuthors: [Author!]!
 }
     
 
 
-input CreateAuthorInput @goModel(model: "github.com/debugger84/sqlc-graphql/examples/simple/storage.CreateAuthorParams") {
+input CreateAuthorInput @goModel(model: "simple/storage.CreateAuthorParams") {
     name: String!
     bio: String
 }
                 
-input UpdateAuthorInput @goModel(model: "github.com/debugger84/sqlc-graphql/examples/simple/storage.UpdateAuthorParams") {
+input UpdateAuthorInput @goModel(model: "simple/storage.UpdateAuthorParams") {
     id: Int!
     name: String!
     bio: String

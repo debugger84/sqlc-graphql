@@ -6,18 +6,18 @@
 
 
 
-enum AuthorStatus  @goModel(model: "github.com/debugger84/sqlc-graphql/examples/simple/storage.AuthorStatus") {
+enum AuthorStatus  @goModel(model: "simple/storage.AuthorStatus") {
     active
     inactive
     deleted
 }
 
 
-type Author @goModel(model: "github.com/debugger84/sqlc-graphql/examples/simple/storage.Author") {
+type Author @goModel(model: "simple/storage.Author") {
     id: Int!
     name: String!
     bio: String
-    status: String
+    status: AuthorStatus!
 }
 
 
