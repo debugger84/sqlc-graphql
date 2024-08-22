@@ -24,16 +24,16 @@ extend type {{.}} {
     """
 {{- end -}}
 {{- if eq .Cmd ":one"}}
-    {{.ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: {{.Ret.DefineType}}
+    {{lowerTitle .ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: {{.Ret.DefineType}}
 {{- end -}}
 {{- if eq .Cmd ":many"}}
-    {{.ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: [{{.Ret.DefineType}}]!
+    {{lowerTitle .ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: [{{.Ret.DefineType}}]!
 {{- end -}}
 {{- if eq .Cmd ":exec"}}
-    {{.ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: Boolean!
+    {{lowerTitle .ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: Boolean!
 {{- end -}}
 {{- if eq .Cmd ":execrows"}}
-    {{.ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: Int!
+    {{lowerTitle .ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: Int!
 {{- end -}}
             {{- end }}
 }
@@ -56,7 +56,7 @@ input {{.Arg.Type}} @goModel(model: "{{.Arg.ModelPath}}") {
                 {{- if .Ret.EmitStruct -}}
 type {{.Ret.Type}} @goModel(model: "{{$.ModelPackage}}.{{.Ret.Type}}") {
 {{- range .Ret.Struct.Fields -}}
-    {{.Name}}: {{.Type}}
+    {{lowerTitle .Name}}: {{.Type}}
 {{- end}}
 }
                 {{ end -}}

@@ -5,15 +5,15 @@
 # source: query.sql
 
 extend type Mutation {
-    CreateAuthor(request: CreateAuthorInput!): Author!
-    DeactivateAuthor(id: Int!): Author!
-    DeleteAuthor(id: Int!): Boolean!
-    UpdateAuthor(request: UpdateAuthorInput!): Author!
+    createAuthor(request: CreateAuthorInput!): Author!
+    deactivateAuthor(id: Int!): Author!
+    deleteAuthor(id: Int!): Boolean!
+    updateAuthor(request: UpdateAuthorInput!): Author!
 }
     
 extend type Query {
-    GetAuthor(id: Int!): Author!
-    ListAuthors: [Author!]!
+    getAuthor(id: Int!): Author!
+    listAuthors: [Author!]!
 }
     
 

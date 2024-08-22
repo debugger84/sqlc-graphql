@@ -5,6 +5,7 @@ import (
 	"github.com/debugger84/sqlc-graphql/internal/opts"
 	"github.com/sqlc-dev/plugin-sdk-go/plugin"
 	"github.com/sqlc-dev/plugin-sdk-go/sdk"
+	"strings"
 )
 
 type GqlField struct {
@@ -87,5 +88,13 @@ func gqlInnerType(req *plugin.GenerateRequest, options *opts.Options, col *plugi
 	case "interface{}":
 		return "Unknown"
 	}
-	return gotype
+
+	tmpGqlType := gotype
+	parts := strings.Split(gotype, ".")
+	if len(parts) > 1 {
+		tmpGqlType = parts[len(parts)-1]
+	}
+	tmpGqlType = strings.TrimPrefix(tmpGqlType, "Null")
+
+	return tmpGqlType
 }
