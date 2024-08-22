@@ -11,7 +11,8 @@ plugins:
       sha256: e8206081686f95b461daf91a307e108a761526c6768d6f3eca9781b0726b7ec8
 sql:
   - engine: "postgresql"
-    schema: "schema.sql"
+    schema:
+     - "migrations"
     queries: "query.sql"
 
     codegen:
@@ -34,7 +35,7 @@ sql:
         out: "./"
         options:
           package: "storage"
-          sql_package: "pgx/v4"
+          sql_package: "pgx/v5"
           emit_json_tags: true
           emit_all_enum_values: true
           json_tags_case_style: "camel"

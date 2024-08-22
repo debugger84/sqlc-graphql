@@ -5,9 +5,10 @@
 package storage
 
 import (
-	"database/sql"
 	"database/sql/driver"
 	"fmt"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type AuthorStatus string
@@ -62,9 +63,9 @@ func AllAuthorStatusValues() []AuthorStatus {
 }
 
 type Author struct {
-	ID        int64          `json:"id"`
-	Name      string         `json:"name"`
-	Bio       sql.NullString `json:"bio"`
-	Status    AuthorStatus   `json:"status"`
-	CreatedAt sql.NullTime   `json:"createdAt"`
+	ID        int64              `json:"id"`
+	Name      string             `json:"name"`
+	Bio       pgtype.Text        `json:"bio"`
+	Status    AuthorStatus       `json:"status"`
+	CreatedAt pgtype.Timestamptz `json:"createdAt"`
 }

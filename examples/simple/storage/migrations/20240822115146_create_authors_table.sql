@@ -1,3 +1,4 @@
+-- migrate:up
 CREATE TYPE author_status AS ENUM ('active', 'inactive', 'deleted');
 
 CREATE TABLE authors
@@ -8,3 +9,8 @@ CREATE TABLE authors
     status author_status NOT NULL DEFAULT 'active',
     created_at TIMESTAMPTZ DEFAULT now()
 );
+
+
+-- migrate:down
+DROP TABLE authors;
+DROP TYPE author_status;

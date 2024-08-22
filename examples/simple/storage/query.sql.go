@@ -7,7 +7,8 @@ package storage
 
 import (
 	"context"
-	"database/sql"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createAuthor = `-- name: CreateAuthor :one
@@ -20,8 +21,8 @@ RETURNING id, name, bio, status, created_at
 `
 
 type CreateAuthorParams struct {
-	Name string         `json:"name"`
-	Bio  sql.NullString `json:"bio"`
+	Name string      `json:"name"`
+	Bio  pgtype.Text `json:"bio"`
 }
 
 // gql: Mutation
@@ -130,9 +131,9 @@ RETURNING id, name, bio, status, created_at
 `
 
 type UpdateAuthorParams struct {
-	ID   int64          `json:"id"`
-	Name string         `json:"name"`
-	Bio  sql.NullString `json:"bio"`
+	ID   int64       `json:"id"`
+	Name string      `json:"name"`
+	Bio  pgtype.Text `json:"bio"`
 }
 
 // gql: Mutation
