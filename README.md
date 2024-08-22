@@ -1,4 +1,5 @@
-# sqlc-graphql
+# Graphql Schema Generator for SQLC
+
 This is a plugin for the sqlc compiler (https://sqlc.dev/). 
 It adds the generation of GraphQL schema from the database schema.
 This plugin was created using the codebase of sqlc-gen-go plugin (https://github.com/sqlc-dev/sqlc-gen-go).
