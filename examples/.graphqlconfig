@@ -1,0 +1,18 @@
+{
+  "name": "Examples schema",
+  "projects": {
+    "simple": {
+      "name": "Simple example",
+      "includes": [
+        "simple/graphql/*.graphql"
+      ]
+    },
+    "client": {
+      "name": "Multimodular example",
+      "includes": [
+        "multimodular/*/*.graphql",
+        "multimodular/*/graphql/*.graphql"
+      ]
+    }
+  }
+}
