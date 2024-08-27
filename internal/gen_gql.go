@@ -167,7 +167,7 @@ func filterQueries(sourceName string, queries []Query, excludedFields map[string
 				}
 			}
 
-			if q.Ret.Struct == nil {
+			if q.Ret.Struct != nil {
 				returns := filterStructs([]Struct{*q.Ret.Struct}, excludedFields)
 				if len(returns) == 1 {
 					q.Ret.Struct = &returns[0]
