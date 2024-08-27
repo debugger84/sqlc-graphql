@@ -20,6 +20,7 @@ But if you want to have inside a module all entities without such namespacing, p
 https://github.com/debugger84/sqlc-gen-go generation plugin instead. It is a fork of original one with the new configuration option "default_schema".
 Type this option for each module with appropriate values and enjoy with readable names like Post and Comment.
 
-## How to use
+## Run the example
 1. Install sqlc (https://docs.sqlc.dev/en/latest/overview/install.html)
-2. 
+2. Checkout repositogy and go to the `examples/multimodular` directory
+3. Run `make generate` to generate the code

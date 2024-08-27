@@ -19,10 +19,7 @@ func (r *mutationResolver) DeleteComment(ctx context.Context, id uuid.UUID) (boo
 }
 
 // LeaveComment is the resolver for the leaveComment field.
-func (r *mutationResolver) LeaveComment(ctx context.Context, request storage1.LeaveCommentParams) (
-	storage1.Comment,
-	error,
-) {
+func (r *mutationResolver) LeaveComment(ctx context.Context, request storage1.LeaveCommentParams) (storage1.Comment, error) {
 	panic(fmt.Errorf("not implemented: LeaveComment - leaveComment"))
 }
 

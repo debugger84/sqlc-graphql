@@ -1,9 +1,11 @@
 version: '2'
 plugins:
   - name: graphql
-    wasm:
-      url: https://github.com/debugger84/sqlc-graphql/releases/download/v0.1.2/sqlc-graphql.wasm
-      sha256: fe1bbdf7679a24c18cdbef48d2519c9ef517db6316d264f4857a21ef8d3b4e9f
+    process:
+      cmd: "../../bin/sqlc-graphql"
+#    wasm:
+#      url: https://github.com/debugger84/sqlc-graphql/releases/download/v0.1.2/sqlc-graphql.wasm
+#      sha256: fe1bbdf7679a24c18cdbef48d2519c9ef517db6316d264f4857a21ef8d3b4e9f
 
   - name: golang
     wasm:

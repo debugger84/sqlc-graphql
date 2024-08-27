@@ -14,11 +14,6 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-// CreatedAt is the resolver for the createdAt field.
-func (r *postResolver) CreatedAt(ctx context.Context, obj *storage2.Post) (time.Time, error) {
-	panic(fmt.Errorf("not implemented: CreatedAt - createdAt"))
-}
-
 // PublishedAt is the resolver for the publishedAt field.
 func (r *postResolver) PublishedAt(ctx context.Context, obj *storage2.Post) (*time.Time, error) {
 	panic(fmt.Errorf("not implemented: PublishedAt - publishedAt"))
@@ -35,6 +30,9 @@ type postResolver struct{ *Resolver }
 //   - When renaming or deleting a resolver the old code will be put in here. You can safely delete
 //     it when you're done.
 //   - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (r *postResolver) CreatedAt(ctx context.Context, obj *storage2.Post) (time.Time, error) {
+	panic(fmt.Errorf("not implemented: CreatedAt - createdAt"))
+}
 func (r *postResolver) AuthorID(ctx context.Context, obj *storage2.Post) (uuid.UUID, error) {
 	panic(fmt.Errorf("not implemented: AuthorID - authorId"))
 }
