@@ -252,9 +252,10 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 			name := columnName(c, 0)
 			name = strings.Replace(name, "$", "_", -1)
 			gq.Ret = QueryValue{
-				Name:   escape(name),
-				DBName: name,
-				Typ:    gqlType(req, options, c),
+				Name:      escape(name),
+				DBName:    name,
+				Typ:       gqlType(req, options, c),
+				ModelPath: options.Package + "." + gq.MethodName,
 			}
 		} else if putOutColumns(query) {
 			var gs *Struct
@@ -276,7 +277,6 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 				}
 				if same {
 					buf := s
-					buf.Name = s.Name + "!"
 					gs = &buf
 					break
 				}
@@ -294,16 +294,18 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 					)
 				}
 				var err error
-				gs, err = columnsToStruct(req, options, gq.MethodName+"Row!", columns, true)
+				gs, err = columnsToStruct(req, options, gq.MethodName+"Row", columns, true)
 				if err != nil {
 					return nil, err
 				}
 				emit = true
 			}
 			gq.Ret = QueryValue{
-				Emit:   emit,
-				Name:   "i",
-				Struct: gs,
+				Emit:      emit,
+				Name:      "i",
+				Struct:    gs,
+				Typ:       gs.Name + "!",
+				ModelPath: options.Package + "." + gq.MethodName,
 			}
 		}
 

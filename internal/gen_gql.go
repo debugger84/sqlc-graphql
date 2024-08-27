@@ -75,7 +75,7 @@ func generateGql(
 		var b bytes.Buffer
 		w := bufio.NewWriter(&b)
 		tctx.SourceName = name
-		tctx.GoQueries = filterQueries(name, queries)
+		tctx.GoQueries = filterQueries(name, queries, excludedFields)
 		tctx.ExtendedTypes = getExtendedTypes(tctx.GoQueries)
 		err := tmpl.ExecuteTemplate(w, templateName, &tctx)
 		w.Flush()
@@ -155,11 +155,25 @@ func extractGqlCommentsOnly(comments []string) []string {
 
 }
 
-func filterQueries(sourceName string, queries []Query) []Query {
+func filterQueries(sourceName string, queries []Query, excludedFields map[string][]string) []Query {
 	var result []Query
 	for _, q := range queries {
 		if q.SourceName == sourceName {
 			q.Comments = extractGqlCommentsOnly(q.Comments)
+			if q.Arg.Struct != nil {
+				args := filterStructs([]Struct{*q.Arg.Struct}, excludedFields)
+				if len(args) == 1 {
+					q.Arg.Struct = &args[0]
+				}
+			}
+
+			if q.Ret.Struct == nil {
+				returns := filterStructs([]Struct{*q.Ret.Struct}, excludedFields)
+				if len(returns) == 1 {
+					q.Ret.Struct = &returns[0]
+				}
+			}
+
 			result = append(result, q)
 		}
 	}
@@ -211,7 +225,7 @@ func filterStructs(structs []Struct, excludeFields map[string][]string) []Struct
 		var fields []Field
 		for _, f := range s.Fields {
 			if _, ok := excludeFields[s.Name]; ok {
-				if slices.Contains(excludeFields[s.Name], f.Name) {
+				if slices.Contains(excludeFields[s.Name], sdk.LowerTitle(f.Name)) {
 					continue
 				}
 			}
