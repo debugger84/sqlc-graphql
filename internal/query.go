@@ -2,6 +2,7 @@ package golang
 
 import (
 	"fmt"
+	"github.com/sqlc-dev/plugin-sdk-go/sdk"
 	"strings"
 
 	"github.com/debugger84/sqlc-graphql/internal/opts"
@@ -94,7 +95,7 @@ func (v QueryValue) Type() string {
 
 func (v *QueryValue) DefineType() string {
 	t := v.Type()
-
+	t = sdk.Title(t)
 	return t
 }
 
