@@ -4,6 +4,7 @@ go 1.22.2
 
 require (
 	github.com/99designs/gqlgen v0.17.49
+	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/jackc/pgx/v5 v5.6.0
 	github.com/subosito/gotenv v1.6.0

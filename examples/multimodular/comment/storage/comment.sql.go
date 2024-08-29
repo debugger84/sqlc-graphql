@@ -13,23 +13,34 @@ import (
 
 const deleteComment = `-- name: DeleteComment :exec
 DELETE FROM "comment".comment
-WHERE id = $1
+WHERE id = $1 and author_id = $2
 `
 
-// gql: Mutation
-func (q *Queries) DeleteComment(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteComment, id)
+type DeleteCommentParams struct {
+	ID       uuid.UUID `json:"id"`
+	AuthorID uuid.UUID `json:"authorId"`
+}
+
+// gql: Mutation.deleteComment
+func (q *Queries) DeleteComment(ctx context.Context, arg DeleteCommentParams) error {
+	_, err := q.db.Exec(ctx, deleteComment, arg.ID, arg.AuthorID)
 	return err
 }
 
 const getPostComments = `-- name: GetPostComments :many
 SELECT id, comment, author_id, post_id, created_at FROM "comment".comment
-WHERE post_id = $1 LIMIT 1
+WHERE post_id = $1 LIMIT $3 OFFSET $2
 `
 
+type GetPostCommentsParams struct {
+	PostID uuid.UUID `json:"postId"`
+	After  int32     `json:"after"`
+	Count  int32     `json:"count"`
+}
+
 // gql: Post.comments
-func (q *Queries) GetPostComments(ctx context.Context, postID uuid.UUID) ([]Comment, error) {
-	rows, err := q.db.Query(ctx, getPostComments, postID)
+func (q *Queries) GetPostComments(ctx context.Context, arg GetPostCommentsParams) ([]Comment, error) {
+	rows, err := q.db.Query(ctx, getPostComments, arg.PostID, arg.After, arg.Count)
 	if err != nil {
 		return nil, err
 	}

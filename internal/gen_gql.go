@@ -209,8 +209,8 @@ func getGqlExcluded(options *opts.Options) (map[string][]string, error) {
 		if len(parts) != 2 {
 			return nil, errors.New("invalid exclude format. It should be in the format of 'GqlTypeName.fieldName'")
 		}
-		typeName := parts[0]
-		fieldName := parts[1]
+		typeName := strings.ToLower(parts[0])
+		fieldName := strings.ToLower(parts[1])
 		if _, ok := res[typeName]; !ok {
 			res[typeName] = make([]string, 0)
 		}
@@ -223,9 +223,11 @@ func filterStructs(structs []Struct, excludeFields map[string][]string) []Struct
 	var result []Struct
 	for _, s := range structs {
 		var fields []Field
+		structName := strings.ToLower(s.Name)
 		for _, f := range s.Fields {
-			if _, ok := excludeFields[s.Name]; ok {
-				if slices.Contains(excludeFields[s.Name], sdk.LowerTitle(f.Name)) {
+			if _, ok := excludeFields[structName]; ok {
+				fieldName := strings.ToLower(f.Name)
+				if slices.Contains(excludeFields[structName], fieldName) {
 					continue
 				}
 			}

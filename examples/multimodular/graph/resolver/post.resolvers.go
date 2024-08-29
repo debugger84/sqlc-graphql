@@ -6,7 +6,8 @@ package resolver
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"multimodular/auth"
 	"multimodular/post/storage"
 
 	"github.com/gofrs/uuid"
@@ -14,15 +15,49 @@ import (
 
 // MakeDraft is the resolver for the makeDraft field.
 func (r *mutationResolver) MakeDraft(ctx context.Context, request storage.MakeDraftParams) (storage.Post, error) {
-	panic(fmt.Errorf("not implemented: MakeDraft - makeDraft"))
+	curentUserId := auth.GetCurrentUserId(ctx)
+	if curentUserId == nil {
+		return storage.Post{}, auth.ErrUnauthenticated
+	}
+	request.AuthorID = *curentUserId
+	request.ID = uuid.Must(uuid.NewV6())
+	return r.PostQueries.MakeDraft(ctx, request)
 }
 
 // Publish is the resolver for the publish field.
-func (r *mutationResolver) Publish(ctx context.Context, id int) (storage.Post, error) {
-	panic(fmt.Errorf("not implemented: Publish - publish"))
+func (r *mutationResolver) Publish(ctx context.Context, id uuid.UUID) (storage.Post, error) {
+	curentUserId := auth.GetCurrentUserId(ctx)
+	if curentUserId == nil {
+		return storage.Post{}, auth.ErrUnauthenticated
+	}
+	post, err := r.PostQueries.GetPost(ctx, id)
+	if err != nil {
+		return storage.Post{}, errors.New("post not found")
+	}
+	if post.AuthorID != *curentUserId {
+		return storage.Post{}, errors.New("not the author")
+	}
+
+	return r.PostQueries.Publish(ctx, id)
 }
 
-// Posts is the resolver for the posts field.
-func (r *queryResolver) Posts(ctx context.Context, authorID uuid.UUID) (storage.Post, error) {
-	panic(fmt.Errorf("not implemented: Posts - posts"))
+// LastPosts is the resolver for the lastPosts field.
+func (r *queryResolver) LastPosts(ctx context.Context, request storage.GetLastPostsParams) ([]storage.Post, error) {
+	return r.PostQueries.GetLastPosts(ctx, request)
+}
+
+// MyDrafts is the resolver for the myDrafts field.
+func (r *queryResolver) MyDrafts(ctx context.Context, request storage.GetMyDraftsParams) ([]storage.Post, error) {
+	curentUserId := auth.GetCurrentUserId(ctx)
+	if curentUserId == nil {
+		return nil, auth.ErrUnauthenticated
+	}
+
+	request.AuthorID = *curentUserId
+	return r.PostQueries.GetMyDrafts(ctx, request)
+}
+
+// Post is the resolver for the post field.
+func (r *queryResolver) Post(ctx context.Context, id uuid.UUID) (storage.Post, error) {
+	return r.PostQueries.GetPost(ctx, id)
 }

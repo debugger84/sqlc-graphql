@@ -11,7 +11,7 @@ enum PostStatus  @goModel(model: "multimodular/post/storage.PostStatus") {
 
 
 type Post @goModel(model: "multimodular/post/storage.Post") {
-    id: Int!
+    id: UUID!
     title: String!
     content: String!
     status: PostStatus!

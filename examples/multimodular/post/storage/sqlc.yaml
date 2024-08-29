@@ -14,7 +14,7 @@ plugins:
 sql:
   - engine: "postgresql"
     schema:
-     - "migrations"
+     - "migration"
     queries:
       - "query"
 

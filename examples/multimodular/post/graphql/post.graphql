@@ -5,15 +5,24 @@
 
 extend type Mutation {
     makeDraft(request: MakeDraftInput!): Post!
-    publish(id: Int!): Post!
+    publish(id: UUID!): Post!
 }
 extend type Query {
-    posts(authorID: UUID!): Post!
+    lastPosts(request: LastPostsInput!): [Post!]!
+    myDrafts(request: MyDraftsInput!): [Post!]!
+    post(id: UUID!): Post!
 }
 
+input LastPostsInput @goModel(model: "multimodular/post/storage.GetLastPostsParams") {
+    after: Int!
+    count: Int!
+}
+input MyDraftsInput @goModel(model: "multimodular/post/storage.GetMyDraftsParams") {
+    authorId: UUID!
+    after: Int!
+    count: Int!
+}
 input MakeDraftInput @goModel(model: "multimodular/post/storage.MakeDraftParams") {
-    id: Int!
     title: String!
     content: String!
-    authorId: UUID!
 }

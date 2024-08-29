@@ -28,7 +28,13 @@ sql:
           emit_all_enum_values: true
           ## create several default types and directives to work in conjunction with the gqlgen library https://gqlgen.com/
           gen_common_parts: false
+          ## the default schema to use for the generated types. It helps to avoid adding the schema name to the type name
           default_schema: "comment"
+          exclude:
+            - "LeaveCommentInput.id"
+            - "LeaveCommentInput.authorId"
+            - "DeleteCommentInput.authorId"
+            - "CommentsInput.postId"
           overrides:
             - db_type: "uuid"
               nullable: true
@@ -55,6 +61,7 @@ sql:
           emit_all_enum_values: true
           json_tags_case_style: "camel"
           out: "./"
+          ## the default schema to use for the generated types. It helps to avoid adding the schema name to the type name
           default_schema: "comment"
           overrides:
             - db_type: "uuid"

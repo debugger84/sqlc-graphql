@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/subosito/gotenv"
 	"log"
+	"multimodular/auth"
 	commentStorage "multimodular/comment/storage"
 	"multimodular/graph/gen"
 	"multimodular/graph/resolver"
@@ -56,7 +57,13 @@ func main() {
 	)
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	http.Handle(
+		"/query", auth.AuthenticateMiddleware(
+			func(w http.ResponseWriter, r *http.Request) {
+				srv.ServeHTTP(w, r)
+			},
+		),
+	)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))

@@ -46,7 +46,7 @@ extend type {{.}} {
         {{- if $.OutputQuery .SourceName -}}
             {{- if ne (hasPrefix .Cmd ":batch") true -}}
                 {{- if .Arg.EmitStruct}}
-input {{.Arg.Type}} @goModel(model: "{{.Arg.ModelPath}}") {
+input {{.Arg.DefineType}} @goModel(model: "{{.Arg.ModelPath}}") {
 {{- range .Arg.Struct.Fields }}
     {{lowerTitle .Name}}: {{.Type}}
 {{- end}}

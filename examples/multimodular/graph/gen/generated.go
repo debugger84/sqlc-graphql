@@ -62,16 +62,16 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		DeleteComment func(childComplexity int, id uuid.UUID) int
+		DeleteComment func(childComplexity int, request storage.DeleteCommentParams) int
 		LeaveComment  func(childComplexity int, request storage.LeaveCommentParams) int
 		MakeDraft     func(childComplexity int, request storage1.MakeDraftParams) int
 		Ping          func(childComplexity int) int
-		Publish       func(childComplexity int, id int) int
+		Publish       func(childComplexity int, id uuid.UUID) int
 	}
 
 	Post struct {
 		AuthorID    func(childComplexity int) int
-		Comments    func(childComplexity int, postID uuid.UUID) int
+		Comments    func(childComplexity int, request storage.GetPostCommentsParams) int
 		Content     func(childComplexity int) int
 		ID          func(childComplexity int) int
 		PublishedAt func(childComplexity int) int
@@ -80,8 +80,10 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Ping  func(childComplexity int) int
-		Posts func(childComplexity int, authorID uuid.UUID) int
+		LastPosts func(childComplexity int, request storage1.GetLastPostsParams) int
+		MyDrafts  func(childComplexity int, request storage1.GetMyDraftsParams) int
+		Ping      func(childComplexity int) int
+		Post      func(childComplexity int, id uuid.UUID) int
 	}
 
 	Subscription struct {
@@ -91,18 +93,20 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	Ping(ctx context.Context) (string, error)
-	DeleteComment(ctx context.Context, id uuid.UUID) (bool, error)
+	DeleteComment(ctx context.Context, request storage.DeleteCommentParams) (bool, error)
 	LeaveComment(ctx context.Context, request storage.LeaveCommentParams) (storage.Comment, error)
 	MakeDraft(ctx context.Context, request storage1.MakeDraftParams) (storage1.Post, error)
-	Publish(ctx context.Context, id int) (storage1.Post, error)
+	Publish(ctx context.Context, id uuid.UUID) (storage1.Post, error)
 }
 type PostResolver interface {
 	PublishedAt(ctx context.Context, obj *storage1.Post) (*time.Time, error)
-	Comments(ctx context.Context, obj *storage1.Post, postID uuid.UUID) ([]storage.Comment, error)
+	Comments(ctx context.Context, obj *storage1.Post, request storage.GetPostCommentsParams) ([]storage.Comment, error)
 }
 type QueryResolver interface {
 	Ping(ctx context.Context) (string, error)
-	Posts(ctx context.Context, authorID uuid.UUID) (storage1.Post, error)
+	LastPosts(ctx context.Context, request storage1.GetLastPostsParams) ([]storage1.Post, error)
+	MyDrafts(ctx context.Context, request storage1.GetMyDraftsParams) ([]storage1.Post, error)
+	Post(ctx context.Context, id uuid.UUID) (storage1.Post, error)
 }
 type SubscriptionResolver interface {
 	Ping(ctx context.Context) (<-chan string, error)
@@ -172,7 +176,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DeleteComment(childComplexity, args["id"].(uuid.UUID)), true
+		return e.complexity.Mutation.DeleteComment(childComplexity, args["request"].(storage.DeleteCommentParams)), true
 
 	case "Mutation.leaveComment":
 		if e.complexity.Mutation.LeaveComment == nil {
@@ -215,7 +219,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.Publish(childComplexity, args["id"].(int)), true
+		return e.complexity.Mutation.Publish(childComplexity, args["id"].(uuid.UUID)), true
 
 	case "Post.authorId":
 		if e.complexity.Post.AuthorID == nil {
@@ -234,7 +238,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Post.Comments(childComplexity, args["postID"].(uuid.UUID)), true
+		return e.complexity.Post.Comments(childComplexity, args["request"].(storage.GetPostCommentsParams)), true
 
 	case "Post.content":
 		if e.complexity.Post.Content == nil {
@@ -271,6 +275,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Post.Title(childComplexity), true
 
+	case "Query.lastPosts":
+		if e.complexity.Query.LastPosts == nil {
+			break
+		}
+
+		args, err := ec.field_Query_lastPosts_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.LastPosts(childComplexity, args["request"].(storage1.GetLastPostsParams)), true
+
+	case "Query.myDrafts":
+		if e.complexity.Query.MyDrafts == nil {
+			break
+		}
+
+		args, err := ec.field_Query_myDrafts_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.MyDrafts(childComplexity, args["request"].(storage1.GetMyDraftsParams)), true
+
 	case "Query.ping":
 		if e.complexity.Query.Ping == nil {
 			break
@@ -278,17 +306,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Ping(childComplexity), true
 
-	case "Query.posts":
-		if e.complexity.Query.Posts == nil {
+	case "Query.post":
+		if e.complexity.Query.Post == nil {
 			break
 		}
 
-		args, err := ec.field_Query_posts_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query_post_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.Posts(childComplexity, args["authorID"].(uuid.UUID)), true
+		return e.complexity.Query.Post(childComplexity, args["id"].(uuid.UUID)), true
 
 	case "Subscription.ping":
 		if e.complexity.Subscription.Ping == nil {
@@ -305,8 +333,12 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	rc := graphql.GetOperationContext(ctx)
 	ec := executionContext{rc, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputCommentsInput,
+		ec.unmarshalInputDeleteCommentInput,
+		ec.unmarshalInputLastPostsInput,
 		ec.unmarshalInputLeaveCommentInput,
 		ec.unmarshalInputMakeDraftInput,
+		ec.unmarshalInputMyDraftsInput,
 	)
 	first := true
 
@@ -421,38 +453,34 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "../../comment/graphql/comment.graphql", Input: `
-# Code generated by sqlc. DO NOT EDIT.
+	{Name: "../../comment/graphql/comment.graphql", Input: `# Code generated by sqlc. DO NOT EDIT.
 # versions:
 #   sqlc v1.27.0
 # source: comment.sql
 
 extend type Mutation {
-    deleteComment(id: UUID!): Boolean!
+    deleteComment(request: DeleteCommentInput!): Boolean!
     leaveComment(request: LeaveCommentInput!): Comment!
 }
-    
 extend type Post {
-    comments(postID: UUID!): [Comment!]!
+    comments(request: CommentsInput!): [Comment!]!
 }
-    
 
-
-input LeaveCommentInput @goModel(model: "multimodular/comment/storage.LeaveCommentParams") {
+input DeleteCommentInput @goModel(model: "multimodular/comment/storage.DeleteCommentParams") {
     id: UUID!
+}
+input CommentsInput @goModel(model: "multimodular/comment/storage.GetPostCommentsParams") {
+    after: Int!
+    count: Int!
+}
+input LeaveCommentInput @goModel(model: "multimodular/comment/storage.LeaveCommentParams") {
     comment: String!
-    authorId: UUID!
     postId: UUID!
 }
-                
-
 `, BuiltIn: false},
-	{Name: "../../comment/graphql/schema.graphql", Input: `
-# Code generated by sqlc. DO NOT EDIT.
+	{Name: "../../comment/graphql/schema.graphql", Input: `# Code generated by sqlc. DO NOT EDIT.
 # versions:
 #   sqlc v1.27.0
-
-
 
 
 
@@ -464,7 +492,6 @@ type Comment @goModel(model: "multimodular/comment/storage.Comment") {
     createdAt: Time!
 }
 
-
 `, BuiltIn: false},
 	{Name: "../../post/graphql/post.graphql", Input: `# Code generated by sqlc. DO NOT EDIT.
 # versions:
@@ -473,17 +500,26 @@ type Comment @goModel(model: "multimodular/comment/storage.Comment") {
 
 extend type Mutation {
     makeDraft(request: MakeDraftInput!): Post!
-    publish(id: Int!): Post!
+    publish(id: UUID!): Post!
 }
 extend type Query {
-    posts(authorID: UUID!): Post!
+    lastPosts(request: LastPostsInput!): [Post!]!
+    myDrafts(request: MyDraftsInput!): [Post!]!
+    post(id: UUID!): Post!
 }
 
+input LastPostsInput @goModel(model: "multimodular/post/storage.GetLastPostsParams") {
+    after: Int!
+    count: Int!
+}
+input MyDraftsInput @goModel(model: "multimodular/post/storage.GetMyDraftsParams") {
+    authorId: UUID!
+    after: Int!
+    count: Int!
+}
 input MakeDraftInput @goModel(model: "multimodular/post/storage.MakeDraftParams") {
-    id: Int!
     title: String!
     content: String!
-    authorId: UUID!
 }
 `, BuiltIn: false},
 	{Name: "../../post/graphql/schema.graphql", Input: `# Code generated by sqlc. DO NOT EDIT.
@@ -499,7 +535,7 @@ enum PostStatus  @goModel(model: "multimodular/post/storage.PostStatus") {
 
 
 type Post @goModel(model: "multimodular/post/storage.Post") {
-    id: Int!
+    id: UUID!
     title: String!
     content: String!
     status: PostStatus!
@@ -555,15 +591,15 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Mutation_deleteComment_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 uuid.UUID
-	if tmp, ok := rawArgs["id"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalNUUID2githubᚗcomᚋgofrsᚋuuidᚐUUID(ctx, tmp)
+	var arg0 storage.DeleteCommentParams
+	if tmp, ok := rawArgs["request"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("request"))
+		arg0, err = ec.unmarshalNDeleteCommentInput2multimodularᚋcommentᚋstorageᚐDeleteCommentParams(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["id"] = arg0
+	args["request"] = arg0
 	return args, nil
 }
 
@@ -600,10 +636,10 @@ func (ec *executionContext) field_Mutation_makeDraft_args(ctx context.Context, r
 func (ec *executionContext) field_Mutation_publish_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 int
+	var arg0 uuid.UUID
 	if tmp, ok := rawArgs["id"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		arg0, err = ec.unmarshalNUUID2githubᚗcomᚋgofrsᚋuuidᚐUUID(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -615,15 +651,15 @@ func (ec *executionContext) field_Mutation_publish_args(ctx context.Context, raw
 func (ec *executionContext) field_Post_comments_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 uuid.UUID
-	if tmp, ok := rawArgs["postID"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("postID"))
-		arg0, err = ec.unmarshalNUUID2githubᚗcomᚋgofrsᚋuuidᚐUUID(ctx, tmp)
+	var arg0 storage.GetPostCommentsParams
+	if tmp, ok := rawArgs["request"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("request"))
+		arg0, err = ec.unmarshalNCommentsInput2multimodularᚋcommentᚋstorageᚐGetPostCommentsParams(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["postID"] = arg0
+	args["request"] = arg0
 	return args, nil
 }
 
@@ -642,18 +678,48 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_posts_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_lastPosts_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 storage1.GetLastPostsParams
+	if tmp, ok := rawArgs["request"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("request"))
+		arg0, err = ec.unmarshalNLastPostsInput2multimodularᚋpostᚋstorageᚐGetLastPostsParams(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["request"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_myDrafts_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 storage1.GetMyDraftsParams
+	if tmp, ok := rawArgs["request"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("request"))
+		arg0, err = ec.unmarshalNMyDraftsInput2multimodularᚋpostᚋstorageᚐGetMyDraftsParams(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["request"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_post_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 uuid.UUID
-	if tmp, ok := rawArgs["authorID"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("authorID"))
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 		arg0, err = ec.unmarshalNUUID2githubᚗcomᚋgofrsᚋuuidᚐUUID(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["authorID"] = arg0
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -973,7 +1039,7 @@ func (ec *executionContext) _Mutation_deleteComment(ctx context.Context, field g
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteComment(rctx, fc.Args["id"].(uuid.UUID))
+		return ec.resolvers.Mutation().DeleteComment(rctx, fc.Args["request"].(storage.DeleteCommentParams))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1166,7 +1232,7 @@ func (ec *executionContext) _Mutation_publish(ctx context.Context, field graphql
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().Publish(rctx, fc.Args["id"].(int))
+		return ec.resolvers.Mutation().Publish(rctx, fc.Args["id"].(uuid.UUID))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1249,9 +1315,9 @@ func (ec *executionContext) _Post_id(ctx context.Context, field graphql.Collecte
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int64)
+	res := resTmp.(uuid.UUID)
 	fc.Result = res
-	return ec.marshalNInt2int64(ctx, field.Selections, res)
+	return ec.marshalNUUID2githubᚗcomᚋgofrsᚋuuidᚐUUID(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Post_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1261,7 +1327,7 @@ func (ec *executionContext) fieldContext_Post_id(_ context.Context, field graphq
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -1498,7 +1564,7 @@ func (ec *executionContext) _Post_comments(ctx context.Context, field graphql.Co
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Post().Comments(rctx, obj, fc.Args["postID"].(uuid.UUID))
+		return ec.resolvers.Post().Comments(rctx, obj, fc.Args["request"].(storage.GetPostCommentsParams))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1595,8 +1661,8 @@ func (ec *executionContext) fieldContext_Query_ping(_ context.Context, field gra
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_posts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_posts(ctx, field)
+func (ec *executionContext) _Query_lastPosts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_lastPosts(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1609,7 +1675,7 @@ func (ec *executionContext) _Query_posts(ctx context.Context, field graphql.Coll
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Posts(rctx, fc.Args["authorID"].(uuid.UUID))
+		return ec.resolvers.Query().LastPosts(rctx, fc.Args["request"].(storage1.GetLastPostsParams))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1621,12 +1687,12 @@ func (ec *executionContext) _Query_posts(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.(storage1.Post)
+	res := resTmp.([]storage1.Post)
 	fc.Result = res
-	return ec.marshalNPost2multimodularᚋpostᚋstorageᚐPost(ctx, field.Selections, res)
+	return ec.marshalNPost2ᚕmultimodularᚋpostᚋstorageᚐPostᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_posts(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_lastPosts(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -1659,7 +1725,149 @@ func (ec *executionContext) fieldContext_Query_posts(ctx context.Context, field 
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_posts_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_lastPosts_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myDrafts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_myDrafts(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().MyDrafts(rctx, fc.Args["request"].(storage1.GetMyDraftsParams))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]storage1.Post)
+	fc.Result = res
+	return ec.marshalNPost2ᚕmultimodularᚋpostᚋstorageᚐPostᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_myDrafts(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Post_id(ctx, field)
+			case "title":
+				return ec.fieldContext_Post_title(ctx, field)
+			case "content":
+				return ec.fieldContext_Post_content(ctx, field)
+			case "status":
+				return ec.fieldContext_Post_status(ctx, field)
+			case "authorId":
+				return ec.fieldContext_Post_authorId(ctx, field)
+			case "publishedAt":
+				return ec.fieldContext_Post_publishedAt(ctx, field)
+			case "comments":
+				return ec.fieldContext_Post_comments(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Post", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_myDrafts_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_post(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_post(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Post(rctx, fc.Args["id"].(uuid.UUID))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(storage1.Post)
+	fc.Result = res
+	return ec.marshalNPost2multimodularᚋpostᚋstorageᚐPost(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_post(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Post_id(ctx, field)
+			case "title":
+				return ec.fieldContext_Post_title(ctx, field)
+			case "content":
+				return ec.fieldContext_Post_content(ctx, field)
+			case "status":
+				return ec.fieldContext_Post_status(ctx, field)
+			case "authorId":
+				return ec.fieldContext_Post_authorId(ctx, field)
+			case "publishedAt":
+				return ec.fieldContext_Post_publishedAt(ctx, field)
+			case "comments":
+				return ec.fieldContext_Post_comments(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Post", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_post_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -3626,14 +3834,48 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(_ context.Context
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputLeaveCommentInput(ctx context.Context, obj interface{}) (storage.LeaveCommentParams, error) {
-	var it storage.LeaveCommentParams
+func (ec *executionContext) unmarshalInputCommentsInput(ctx context.Context, obj interface{}) (storage.GetPostCommentsParams, error) {
+	var it storage.GetPostCommentsParams
 	asMap := map[string]interface{}{}
 	for k, v := range obj.(map[string]interface{}) {
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "comment", "authorId", "postId"}
+	fieldsInOrder := [...]string{"after", "count"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "after":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+			data, err := ec.unmarshalNInt2int32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.After = data
+		case "count":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("count"))
+			data, err := ec.unmarshalNInt2int32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Count = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputDeleteCommentInput(ctx context.Context, obj interface{}) (storage.DeleteCommentParams, error) {
+	var it storage.DeleteCommentParams
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -3647,6 +3889,60 @@ func (ec *executionContext) unmarshalInputLeaveCommentInput(ctx context.Context,
 				return it, err
 			}
 			it.ID = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputLastPostsInput(ctx context.Context, obj interface{}) (storage1.GetLastPostsParams, error) {
+	var it storage1.GetLastPostsParams
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"after", "count"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "after":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+			data, err := ec.unmarshalNInt2int32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.After = data
+		case "count":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("count"))
+			data, err := ec.unmarshalNInt2int32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Count = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputLeaveCommentInput(ctx context.Context, obj interface{}) (storage.LeaveCommentParams, error) {
+	var it storage.LeaveCommentParams
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"comment", "postId"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
 		case "comment":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("comment"))
 			data, err := ec.unmarshalNString2string(ctx, v)
@@ -3654,13 +3950,6 @@ func (ec *executionContext) unmarshalInputLeaveCommentInput(ctx context.Context,
 				return it, err
 			}
 			it.Comment = data
-		case "authorId":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("authorId"))
-			data, err := ec.unmarshalNUUID2githubᚗcomᚋgofrsᚋuuidᚐUUID(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.AuthorID = data
 		case "postId":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("postId"))
 			data, err := ec.unmarshalNUUID2githubᚗcomᚋgofrsᚋuuidᚐUUID(ctx, v)
@@ -3681,20 +3970,13 @@ func (ec *executionContext) unmarshalInputMakeDraftInput(ctx context.Context, ob
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "title", "content", "authorId"}
+	fieldsInOrder := [...]string{"title", "content"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "id":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-			data, err := ec.unmarshalNInt2int64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ID = data
 		case "title":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
 			data, err := ec.unmarshalNString2string(ctx, v)
@@ -3709,6 +3991,26 @@ func (ec *executionContext) unmarshalInputMakeDraftInput(ctx context.Context, ob
 				return it, err
 			}
 			it.Content = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputMyDraftsInput(ctx context.Context, obj interface{}) (storage1.GetMyDraftsParams, error) {
+	var it storage1.GetMyDraftsParams
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"authorId", "after", "count"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
 		case "authorId":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("authorId"))
 			data, err := ec.unmarshalNUUID2githubᚗcomᚋgofrsᚋuuidᚐUUID(ctx, v)
@@ -3716,6 +4018,20 @@ func (ec *executionContext) unmarshalInputMakeDraftInput(ctx context.Context, ob
 				return it, err
 			}
 			it.AuthorID = data
+		case "after":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+			data, err := ec.unmarshalNInt2int32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.After = data
+		case "count":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("count"))
+			data, err := ec.unmarshalNInt2int32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Count = data
 		}
 	}
 
@@ -4035,7 +4351,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "posts":
+		case "lastPosts":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -4044,7 +4360,51 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_posts(ctx, field)
+				res = ec._Query_lastPosts(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myDrafts":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myDrafts(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "post":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_post(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -4497,13 +4857,23 @@ func (ec *executionContext) marshalNComment2ᚕmultimodularᚋcommentᚋstorage�
 	return ret
 }
 
-func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
-	res, err := graphql.UnmarshalInt(v)
+func (ec *executionContext) unmarshalNCommentsInput2multimodularᚋcommentᚋstorageᚐGetPostCommentsParams(ctx context.Context, v interface{}) (storage.GetPostCommentsParams, error) {
+	res, err := ec.unmarshalInputCommentsInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
-	res := graphql.MarshalInt(v)
+func (ec *executionContext) unmarshalNDeleteCommentInput2multimodularᚋcommentᚋstorageᚐDeleteCommentParams(ctx context.Context, v interface{}) (storage.DeleteCommentParams, error) {
+	res, err := ec.unmarshalInputDeleteCommentInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNInt2int32(ctx context.Context, v interface{}) (int32, error) {
+	res, err := graphql.UnmarshalInt32(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt2int32(ctx context.Context, sel ast.SelectionSet, v int32) graphql.Marshaler {
+	res := graphql.MarshalInt32(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -4512,19 +4882,9 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
-func (ec *executionContext) unmarshalNInt2int64(ctx context.Context, v interface{}) (int64, error) {
-	res, err := graphql.UnmarshalInt64(v)
+func (ec *executionContext) unmarshalNLastPostsInput2multimodularᚋpostᚋstorageᚐGetLastPostsParams(ctx context.Context, v interface{}) (storage1.GetLastPostsParams, error) {
+	res, err := ec.unmarshalInputLastPostsInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNInt2int64(ctx context.Context, sel ast.SelectionSet, v int64) graphql.Marshaler {
-	res := graphql.MarshalInt64(v)
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-	}
-	return res
 }
 
 func (ec *executionContext) unmarshalNLeaveCommentInput2multimodularᚋcommentᚋstorageᚐLeaveCommentParams(ctx context.Context, v interface{}) (storage.LeaveCommentParams, error) {
@@ -4537,8 +4897,57 @@ func (ec *executionContext) unmarshalNMakeDraftInput2multimodularᚋpostᚋstora
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNMyDraftsInput2multimodularᚋpostᚋstorageᚐGetMyDraftsParams(ctx context.Context, v interface{}) (storage1.GetMyDraftsParams, error) {
+	res, err := ec.unmarshalInputMyDraftsInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNPost2multimodularᚋpostᚋstorageᚐPost(ctx context.Context, sel ast.SelectionSet, v storage1.Post) graphql.Marshaler {
 	return ec._Post(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPost2ᚕmultimodularᚋpostᚋstorageᚐPostᚄ(ctx context.Context, sel ast.SelectionSet, v []storage1.Post) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPost2multimodularᚋpostᚋstorageᚐPost(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalNPostStatus2multimodularᚋpostᚋstorageᚐPostStatus(ctx context.Context, v interface{}) (storage1.PostStatus, error) {

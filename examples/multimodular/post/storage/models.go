@@ -64,7 +64,7 @@ func AllPostStatusValues() []PostStatus {
 }
 
 type Post struct {
-	ID          int64              `json:"id"`
+	ID          uuid.UUID          `json:"id"`
 	Title       string             `json:"title"`
 	Content     string             `json:"content"`
 	Status      PostStatus         `json:"status"`

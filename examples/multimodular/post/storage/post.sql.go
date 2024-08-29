@@ -11,13 +11,90 @@ import (
 	uuid "github.com/gofrs/uuid"
 )
 
-const getPosts = `-- name: GetPosts :one
-SELECT id, title, content, status, author_id, created_at, published_at FROM post.post WHERE author_id = $1 ORDER BY created_at DESC
+const getLastPosts = `-- name: GetLastPosts :many
+SELECT id, title, content, status, author_id, created_at, published_at FROM post.post WHERE status= 'published' ORDER BY created_at DESC LIMIT $2 OFFSET $1
 `
 
-// gql: Query.posts
-func (q *Queries) GetPosts(ctx context.Context, authorID uuid.UUID) (Post, error) {
-	row := q.db.QueryRow(ctx, getPosts, authorID)
+type GetLastPostsParams struct {
+	After int32 `json:"after"`
+	Count int32 `json:"count"`
+}
+
+// gql: Query.lastPosts
+func (q *Queries) GetLastPosts(ctx context.Context, arg GetLastPostsParams) ([]Post, error) {
+	rows, err := q.db.Query(ctx, getLastPosts, arg.After, arg.Count)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Post
+	for rows.Next() {
+		var i Post
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Content,
+			&i.Status,
+			&i.AuthorID,
+			&i.CreatedAt,
+			&i.PublishedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getMyDrafts = `-- name: GetMyDrafts :many
+SELECT id, title, content, status, author_id, created_at, published_at FROM post.post WHERE author_id = $1 AND status = 'draft' ORDER BY created_at DESC LIMIT $3 OFFSET $2
+`
+
+type GetMyDraftsParams struct {
+	AuthorID uuid.UUID `json:"authorId"`
+	After    int32     `json:"after"`
+	Count    int32     `json:"count"`
+}
+
+// gql: Query.myDrafts
+func (q *Queries) GetMyDrafts(ctx context.Context, arg GetMyDraftsParams) ([]Post, error) {
+	rows, err := q.db.Query(ctx, getMyDrafts, arg.AuthorID, arg.After, arg.Count)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Post
+	for rows.Next() {
+		var i Post
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Content,
+			&i.Status,
+			&i.AuthorID,
+			&i.CreatedAt,
+			&i.PublishedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPost = `-- name: GetPost :one
+SELECT id, title, content, status, author_id, created_at, published_at FROM post.post WHERE id = $1
+`
+
+// gql: Query.post
+func (q *Queries) GetPost(ctx context.Context, id uuid.UUID) (Post, error) {
+	row := q.db.QueryRow(ctx, getPost, id)
 	var i Post
 	err := row.Scan(
 		&i.ID,
@@ -38,7 +115,7 @@ RETURNING id, title, content, status, author_id, created_at, published_at
 `
 
 type MakeDraftParams struct {
-	ID       int64     `json:"id"`
+	ID       uuid.UUID `json:"id"`
 	Title    string    `json:"title"`
 	Content  string    `json:"content"`
 	AuthorID uuid.UUID `json:"authorId"`
@@ -70,7 +147,7 @@ UPDATE post.post SET status = 'published' WHERE id = $1 RETURNING id, title, con
 `
 
 // gql: Mutation
-func (q *Queries) Publish(ctx context.Context, id int64) (Post, error) {
+func (q *Queries) Publish(ctx context.Context, id uuid.UUID) (Post, error) {
 	row := q.db.QueryRow(ctx, publish, id)
 	var i Post
 	err := row.Scan(
