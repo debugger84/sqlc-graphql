@@ -34,14 +34,15 @@ extend type Query {
 ## How to use
 1. Install sqlc (https://docs.sqlc.dev/en/latest/overview/install.html)
 2. Add new queries to the storage/query.sql file
-3. Mark all new queries with the `-- gql: <extended_type>.<query_name>` comment if you want to have its representation in GraphQL schema. For example:
+3. Mark all new queries with the comment: 
+```sql
+-- gql: <extended_type>.<query_name>
+-- paginated: offset
+``` 
+For example:
 ```sql
 -- gql: Query.getAllAuthors
-SELECT * FROM authors;
-```
-Also, you can add only the `-- gql: <extended_type>` comment if you want to have the same name in Golang and GraphQL.
-```sql 
--- gql: Query
+-- paginated: offset
 SELECT * FROM authors;
 ```
 
@@ -60,15 +61,15 @@ It will generate the resolvers in the graph/resolver folder.
 6. Find the changes in the graph/resolver folder. 
 The changes will consist of the new queries with panics like this.
 ```go
-func (r *queryResolver) GetAllAuthors(ctx context.Context) ([]storage.Author, error) {
+func (r *queryResolver) GetAllAuthors(ctx context.Context, request storage.GetAllAuthorsParams) (storage.AuthorPage, error) {
     panic(fmt.Errorf("not implemented"))
 }
 ```
 
 7. Change the panic to the real implementation of the query. For example:
 ```go
-func (r *queryResolver) GetAllAuthors(ctx context.Context) ([]storage.Author, error) {
-    return r.Queries.GetAllAuthors(ctx)
+func (r *queryResolver) GetAllAuthors(ctx context.Context, request storage.GetAllAuthorsParams) (storage.AuthorPage, error) {
+    return r.Queries.GetAllAuthors(ctx, request)
 }
 ```
 
@@ -94,25 +95,25 @@ mutation {
 ```
 12. Try to get all authors:
 ```graphql
-query {
-    listAuthors {
-        id
-        name
-        bio
-    }
+{
+    listAuthors(request:{limit:10, offset:0}){total, hasNext, items{id, name}}
 }
+
 ```
 and you will see the list of authors like this:
 ```json
 {
   "data": {
-    "listAuthors": [
-      {
-        "id": "1",
-        "name": "John Doe",
-        "bio": "Unknown guy"
-      }
-    ]
+    "listAuthors": {
+      "total": 1,
+      "hasNext": false,
+      "items": [
+        {
+          "id": 1,
+          "name": "John Doe"
+        }
+      ]
+    }
   }
 }
 ```
