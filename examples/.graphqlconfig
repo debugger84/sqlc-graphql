@@ -7,6 +7,12 @@
         "simple/graphql/*.graphql"
       ]
     },
+    "pagination": {
+      "name": "Pagination example",
+      "includes": [
+        "pagination/graphql/*.graphql"
+      ]
+    },
     "client": {
       "name": "Multimodular example",
       "includes": [

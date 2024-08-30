@@ -186,7 +186,7 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 		comments := query.Comments
 		var extendedType string
 		resolverName := query.Name
-		for _, comment := range comments {
+		for i, comment := range comments {
 			parts := strings.Split(comment, ":")
 			if len(parts) > 1 && strings.Trim(parts[0], " ") == "gql" {
 				gql := strings.Trim(parts[1], " ")
@@ -195,11 +195,22 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 				if len(resolverInfo) > 1 {
 					resolverName = resolverInfo[1]
 				}
+				comments = append(comments[:i], comments[i+1:]...)
 				break
 			}
 		}
 		if extendedType == "" {
 			continue
+		}
+
+		paginated := false
+		for i, comment := range comments {
+			comment = strings.TrimSpace(comment)
+			if strings.HasPrefix(comment, "paginated") {
+				paginated = true
+				comments = append(comments[:i], comments[i+1:]...)
+				break
+			}
 		}
 
 		gq := Query{
@@ -209,9 +220,37 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 			SourceName:   query.Filename,
 			ExtendedType: extendedType,
 			ResolverName: resolverName,
+			Paginated:    paginated,
 		}
 
 		qpl := int(*options.QueryParameterLimit)
+
+		if paginated {
+			number := int32(len(query.Params) + 1)
+			query.Params = append(
+				query.Params, &plugin.Parameter{
+					Number: number,
+					Column: &plugin.Column{
+						Name:         "limit",
+						NotNull:      true,
+						IsNamedParam: true,
+						Type: &plugin.Identifier{
+							Name: "int",
+						},
+					},
+				}, &plugin.Parameter{
+					Number: number + 1,
+					Column: &plugin.Column{
+						Name:         "offset",
+						NotNull:      true,
+						IsNamedParam: true,
+						Type: &plugin.Identifier{
+							Name: "int",
+						},
+					},
+				},
+			)
+		}
 
 		if len(query.Params) == 1 && qpl != 0 {
 			p := query.Params[0]
@@ -282,6 +321,7 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 				}
 			}
 
+			modelPath := options.Package + "." + gq.MethodName
 			if gs == nil {
 				var columns []goColumn
 				for i, c := range query.Columns {
@@ -299,13 +339,14 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 					return nil, err
 				}
 				emit = true
+				modelPath = options.Package + "." + gq.MethodName + "Row"
 			}
 			gq.Ret = QueryValue{
 				Emit:      emit,
 				Name:      "i",
 				Struct:    gs,
 				Typ:       gs.Name + "!",
-				ModelPath: options.Package + "." + gq.MethodName,
+				ModelPath: modelPath,
 			}
 		}
 
@@ -429,4 +470,56 @@ func checkIncompatibleFieldTypes(fields []Field) error {
 		}
 	}
 	return nil
+}
+
+func addRetValuesToStructs(structs []Struct, queries []Query) []Struct {
+	for _, q := range queries {
+		if q.Ret.Struct != nil {
+			if q.Ret.Emit {
+				structs = append(structs, *q.Ret.Struct)
+			}
+			if q.Paginated {
+				structs = addPageStruct(*q.Ret.Struct, structs)
+			}
+		}
+	}
+	return structs
+}
+
+func addPageStruct(original Struct, structs []Struct) []Struct {
+	pageName := original.Name + "Page"
+	for _, s := range structs {
+		if s.Name == pageName {
+			return structs
+		}
+	}
+	pageStruct := Struct{
+		Name: pageName,
+		Fields: []Field{
+			{
+				Name:    "Items",
+				DBName:  "",
+				Type:    "[" + original.Name + "!]!",
+				Comment: "",
+				Column: &plugin.Column{
+					Name:    "items",
+					NotNull: true,
+					IsArray: true,
+				},
+				EmbedFields: nil,
+			},
+			{
+				Name:   "Total",
+				DBName: "",
+				Type:   "Int!",
+			},
+			{
+				Name:   "HasNext",
+				DBName: "",
+				Type:   "Boolean!",
+			},
+		},
+	}
+	structs = append(structs, pageStruct)
+	return structs
 }

@@ -27,7 +27,7 @@ extend type {{.}} {
     {{lowerTitle .ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: {{.Ret.DefineType}}
 {{- end -}}
 {{- if eq .Cmd ":many"}}
-    {{lowerTitle .ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: [{{.Ret.DefineType}}]!
+    {{lowerTitle .ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: {{ if .Paginated}}{{.Ret.Struct.Name}}Page!{{ else }}[{{.Ret.DefineType}}]!{{ end }}
 {{- end -}}
 {{- if eq .Cmd ":exec"}}
     {{lowerTitle .ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: Boolean!
@@ -48,13 +48,6 @@ extend type {{.}} {
                 {{- if .Arg.EmitStruct}}
 input {{.Arg.DefineType}} @goModel(model: "{{.Arg.ModelPath}}") {
 {{- range .Arg.Struct.Fields }}
-    {{lowerTitle .Name}}: {{.Type}}
-{{- end}}
-}
-                {{- end -}}
-                {{- if .Ret.EmitStruct }}
-type {{.Ret.Struct.Name}} @goModel(model: "{{.Ret.ModelPath}}") {
-{{- range .Ret.Struct.Fields }}
     {{lowerTitle .Name}}: {{.Type}}
 {{- end}}
 }

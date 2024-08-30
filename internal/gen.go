@@ -7,94 +7,6 @@ import (
 	"github.com/sqlc-dev/plugin-sdk-go/plugin"
 )
 
-//type tmplCtx struct {
-//	Q           string
-//	Package     string
-//	SQLDriver   opts.SQLDriver
-//	Enums       []Enum
-//	Structs     []Struct
-//	GoQueries   []Query
-//	SqlcVersion string
-//
-//	// TODO: Race conditions
-//	SourceName string
-//
-//	EmitJSONTags              bool
-//	JsonTagsIDUppercase       bool
-//	EmitDBTags                bool
-//	EmitPreparedQueries       bool
-//	EmitInterface             bool
-//	EmitEmptySlices           bool
-//	EmitMethodsWithDBArgument bool
-//	EmitEnumValidMethod       bool
-//	EmitAllEnumValues         bool
-//	UsesCopyFrom              bool
-//	UsesBatch                 bool
-//	OmitSqlcVersion           bool
-//	BuildTags                 string
-//}
-//
-//func (t *tmplCtx) OutputQuery(sourceName string) bool {
-//	return t.SourceName == sourceName
-//}
-//
-//func (t *tmplCtx) codegenDbarg() string {
-//	if t.EmitMethodsWithDBArgument {
-//		return "db DBTX, "
-//	}
-//	return ""
-//}
-//
-//// Called as a global method since subtemplate queryCodeStdExec does not have
-//// access to the toplevel tmplCtx
-//func (t *tmplCtx) codegenEmitPreparedQueries() bool {
-//	return t.EmitPreparedQueries
-//}
-//
-//func (t *tmplCtx) codegenQueryMethod(q Query) string {
-//	db := "q.db"
-//	if t.EmitMethodsWithDBArgument {
-//		db = "db"
-//	}
-//
-//	switch q.Cmd {
-//	case ":one":
-//		if t.EmitPreparedQueries {
-//			return "q.queryRow"
-//		}
-//		return db + ".QueryRowContext"
-//
-//	case ":many":
-//		if t.EmitPreparedQueries {
-//			return "q.query"
-//		}
-//		return db + ".QueryContext"
-//
-//	default:
-//		if t.EmitPreparedQueries {
-//			return "q.exec"
-//		}
-//		return db + ".ExecContext"
-//	}
-//}
-//
-//func (t *tmplCtx) codegenQueryRetval(q Query) (string, error) {
-//	switch q.Cmd {
-//	case ":one":
-//		return "row :=", nil
-//	case ":many":
-//		return "rows, err :=", nil
-//	case ":exec":
-//		return "_, err :=", nil
-//	case ":execrows", ":execlastid":
-//		return "result, err :=", nil
-//	case ":execresult":
-//		return "return", nil
-//	default:
-//		return "", fmt.Errorf("unhandled q.Cmd case %q", q.Cmd)
-//	}
-//}
-
 func Generate(ctx context.Context, req *plugin.GenerateRequest) (*plugin.GenerateResponse, error) {
 	options, err := opts.Parse(req)
 	if err != nil {
@@ -114,6 +26,7 @@ func Generate(ctx context.Context, req *plugin.GenerateRequest) (*plugin.Generat
 	if err != nil {
 		return nil, err
 	}
+	structs = addRetValuesToStructs(structs, queries)
 
 	if options.OmitUnusedStructs {
 		enums, structs = filterUnusedStructs(enums, structs, queries)

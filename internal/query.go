@@ -259,6 +259,8 @@ type Query struct {
 	ResolverName string
 	Ret          QueryValue
 	Arg          QueryValue
+
+	Paginated bool
 }
 
 func (q Query) hasRetType() bool {
