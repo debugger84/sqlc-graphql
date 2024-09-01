@@ -260,11 +260,28 @@ type Query struct {
 	Ret          QueryValue
 	Arg          QueryValue
 
-	Paginated bool
+	Paginated        bool
+	CursorPagination bool
 }
 
 func (q Query) hasRetType() bool {
 	scanned := q.Cmd == metadata.CmdOne || q.Cmd == metadata.CmdMany ||
 		q.Cmd == metadata.CmdBatchMany || q.Cmd == metadata.CmdBatchOne
 	return scanned && !q.Ret.isEmpty()
+}
+
+func (q Query) ReturnedType() string {
+	if q.Cmd == metadata.CmdOne {
+		return q.Ret.DefineType()
+	}
+	if q.Cmd != metadata.CmdMany {
+		return ""
+	}
+	if q.Paginated {
+		if q.CursorPagination {
+			return fmt.Sprintf("%sConnection!", q.Ret.Struct.Name)
+		}
+		return fmt.Sprintf("%sPage!", q.Ret.Struct.Name)
+	}
+	return fmt.Sprintf("[%s]!", q.Ret.DefineType())
 }
