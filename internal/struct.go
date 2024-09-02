@@ -34,11 +34,7 @@ func StructName(name string, options *opts.Options) string {
 	)
 
 	for _, p := range strings.Split(name, "_") {
-		//if p == "id" {
-		//	out += "ID"
-		//} else {
 		out += strings.Title(p)
-		//}
 	}
 
 	// If a name has a digit as its first char, prepand an underscore to make it a valid Go name.

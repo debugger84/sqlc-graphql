@@ -204,52 +204,83 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 		}
 
 		paginated := false
+		cursorPagination := false
 		for i, comment := range comments {
 			comment = strings.TrimSpace(comment)
 			if strings.HasPrefix(comment, "paginated") {
 				paginated = true
 				comments = append(comments[:i], comments[i+1:]...)
+				if strings.Contains(comment, "cursor") {
+					cursorPagination = true
+				}
 				break
 			}
 		}
 
 		gq := Query{
-			Cmd:          query.Cmd,
-			Comments:     comments,
-			MethodName:   query.Name,
-			SourceName:   query.Filename,
-			ExtendedType: extendedType,
-			ResolverName: resolverName,
-			Paginated:    paginated,
+			Cmd:              query.Cmd,
+			Comments:         comments,
+			MethodName:       query.Name,
+			SourceName:       query.Filename,
+			ExtendedType:     extendedType,
+			ResolverName:     resolverName,
+			Paginated:        paginated,
+			CursorPagination: cursorPagination,
 		}
 
 		qpl := int(*options.QueryParameterLimit)
 
 		if paginated {
 			number := int32(len(query.Params) + 1)
-			query.Params = append(
-				query.Params, &plugin.Parameter{
-					Number: number,
-					Column: &plugin.Column{
-						Name:         "limit",
-						NotNull:      true,
-						IsNamedParam: true,
-						Type: &plugin.Identifier{
-							Name: "int",
+			if cursorPagination {
+				query.Params = append(
+					query.Params, &plugin.Parameter{
+						Number: number,
+						Column: &plugin.Column{
+							Name:         "first",
+							NotNull:      true,
+							IsNamedParam: true,
+							Type: &plugin.Identifier{
+								Name: "int",
+							},
+						},
+					}, &plugin.Parameter{
+						Number: number + 1,
+						Column: &plugin.Column{
+							Name:         "after",
+							NotNull:      true,
+							IsNamedParam: true,
+							Type: &plugin.Identifier{
+								Name: "string",
+							},
 						},
 					},
-				}, &plugin.Parameter{
-					Number: number + 1,
-					Column: &plugin.Column{
-						Name:         "offset",
-						NotNull:      true,
-						IsNamedParam: true,
-						Type: &plugin.Identifier{
-							Name: "int",
+				)
+			} else {
+				query.Params = append(
+					query.Params, &plugin.Parameter{
+						Number: number,
+						Column: &plugin.Column{
+							Name:         "limit",
+							NotNull:      true,
+							IsNamedParam: true,
+							Type: &plugin.Identifier{
+								Name: "int",
+							},
+						},
+					}, &plugin.Parameter{
+						Number: number + 1,
+						Column: &plugin.Column{
+							Name:         "offset",
+							NotNull:      true,
+							IsNamedParam: true,
+							Type: &plugin.Identifier{
+								Name: "int",
+							},
 						},
 					},
-				},
-			)
+				)
+			}
 		}
 
 		if len(query.Params) == 1 && qpl != 0 {
@@ -274,6 +305,7 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 			if err != nil {
 				return nil, err
 			}
+			s.Fields = addDefaultDirectivesToPaginationInputFields(s.Fields)
 			gq.Arg = QueryValue{
 				Emit:      true,
 				Name:      "request",
@@ -419,6 +451,7 @@ func columnsToStruct(
 			DBName: colName,
 			Column: c.Column,
 		}
+		f.Directive = parseDirective(options, c.Column)
 		if c.embed == nil {
 			f.Type = gqlType(req, options, c.Column)
 		} else {
@@ -479,7 +512,11 @@ func addRetValuesToStructs(structs []Struct, queries []Query) []Struct {
 				structs = append(structs, *q.Ret.Struct)
 			}
 			if q.Paginated {
-				structs = addPageStruct(*q.Ret.Struct, structs)
+				if q.CursorPagination {
+					structs = addConnectionStruct(*q.Ret.Struct, structs)
+				} else {
+					structs = addPageStruct(*q.Ret.Struct, structs)
+				}
 			}
 		}
 	}
@@ -522,4 +559,94 @@ func addPageStruct(original Struct, structs []Struct) []Struct {
 	}
 	structs = append(structs, pageStruct)
 	return structs
+}
+
+func addConnectionStruct(original Struct, structs []Struct) []Struct {
+	connectionName := original.Name + "Connection"
+	edgeName := original.Name + "Edge"
+	for _, s := range structs {
+		if s.Name == connectionName {
+			return structs
+		}
+	}
+
+	edgeStruct := Struct{
+		Name: edgeName,
+		Fields: []Field{
+			{
+				Name: "Node",
+				Type: original.Name + "!",
+				Column: &plugin.Column{
+					Name:    "node",
+					NotNull: true,
+					IsArray: false,
+					Type:    &plugin.Identifier{Name: original.Name},
+				},
+			},
+			{
+				Name: "Cursor",
+				Type: "String!",
+				Column: &plugin.Column{
+					Name:    "cursor",
+					NotNull: true,
+					IsArray: false,
+					Type:    &plugin.Identifier{Name: "string"},
+				},
+			},
+		},
+	}
+
+	connectionStruct := Struct{
+		Name: connectionName,
+		Fields: []Field{
+			{
+				Name:    "Edges",
+				DBName:  "",
+				Type:    "[" + edgeName + "!]!",
+				Comment: "",
+				Column: &plugin.Column{
+					Name:    "edges",
+					NotNull: true,
+					IsArray: true,
+					Type:    &plugin.Identifier{Name: edgeName},
+				},
+				EmbedFields: nil,
+			},
+			{
+				Name:   "PageInfo",
+				DBName: "",
+				Type:   "PageInfo!",
+				Column: &plugin.Column{
+					Name:    "pageInfo",
+					NotNull: true,
+					IsArray: false,
+					Type:    &plugin.Identifier{Name: "PageInfo"},
+				},
+			},
+		},
+	}
+
+	structs = append(structs, connectionStruct, edgeStruct)
+	return structs
+}
+
+func parseDirective(options *opts.Options, column *plugin.Column) string {
+	directive := ""
+	//TODO: Implement directive parsing
+
+	return directive
+}
+
+func addDefaultDirectivesToPaginationInputFields(fields []Field) []Field {
+	res := make([]Field, 0, len(fields))
+	for _, f := range fields {
+		if f.Name == "First" && f.Directive == "" {
+			f.Directive = "@goField(name: \"limit\")"
+		}
+		if f.Name == "After" && f.Directive == "" {
+			f.Directive = "@goField(name: \"cursor\")"
+		}
+		res = append(res, f)
+	}
+	return res
 }
