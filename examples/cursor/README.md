@@ -1,48 +1,80 @@
 # Pagination queries generation example
 
-This is an example based on the "simple" example. It shows how to generate pagination queries using the sqlc tool.
+This is an example based on the "simple" example. It shows how to generate cursor-based (https://graphql.org/learn/pagination/) pagination queries using the sqlc tool.
 
 Main differences from the "simple" example:
-1. The `storage/query.sql` file contains the `ListAuthors` query without the `limit` and `offset` parameters.
-But it has the `-- paginated: offset` comment. It means that the `ListAuthors` query will be paginated by the `offset` parameter.
-In the future it will be possible to paginate queries by cursor. In this case the `-- paginated: cursor` comment should be used.
+1. The `storage/query.sql` file contains the `ListAuthors` query without the `limit`, `offset`, and `order by` parameters.
+But it has the `-- paginated: cursor:name,id` comment. It means that the `ListAuthors` query will be paginated by the `cursor` parameter that consists of the fields `name` and `id`.
 ```sql
 -- name: ListAuthors :many
 -- gql: Query
--- paginated: offset
+-- paginated: cursor:name,id
 SELECT * FROM authors
 ORDER BY name;
 ```
-2. The `storage/sqlc.yaml` uses the https://github.com/debugger84/sqlc-gen-go plugin to generate the pagination queries instead of the original one.
-3. After running the generation the generated code contains the `ListAuthors` query with the `offset` and `limit` parameters. And the `AuthorPage` type returned from the query instead of `[]Author`.
+For the cursor-based pagination we have such requirements:
+- The query should have the `-- paginated: cursor:<fields>` comment.
+- The query should NOT have the `ORDER BY` clause. Because the order is defined by the `cursor` parameter.
+- The query should NOT have the `LIMIT` and `OFFSET` clauses. Because the `LIMIT` is set by generator and `OFFSET` is not used at all in this type of pagination.
+- If the cursor field is not unique, the query should have the `id` field in the last cursor parameter. The `id` field is used to make the order unique.
+- If you want to make the order in the opposite direction, you should use the `-` sign before cursor field. For example:
+```sql
+-- paginated: cursor:-name,id
+```
+- The `cursor` parameter should be a string. The generator will parse the cursor string and extract the values of the fields from it.
+- All fields in the `cursor` parameter should be in the returning type. 
+- The generator will add the `ORDER BY` clause to the query with the fields from the `cursor` parameter.
+
+3. The `storage/sqlc.yaml` uses the https://github.com/debugger84/sqlc-gen-go plugin to generate the pagination queries instead of the original one.
+
+4. After running the generation, the generated code contains all necessary Relay-compatible types.
 ```graphql
-type AuthorPage @goModel(model: "cursor/storage.AuthorPage") {
-    items: [Author!]!
-    total: Int!
-    hasNext: Boolean!
+type Author @goModel(model: "cursor/storage.Author") {
+    id: Int!
+    name: String!
+    bio: String
+    status: AuthorStatus!
 }
 
-input ListAuthorsInput @goModel(model: "cursor/storage.ListAuthorsParams") {
-    limit: Int!
-    offset: Int!
+type AuthorConnection @goModel(model: "cursor/storage.AuthorConnection") {
+    edges: [AuthorEdge!]!
+    pageInfo: PageInfo!
 }
+
+type AuthorEdge @goModel(model: "cursor/storage.AuthorEdge") {
+    node: Author!
+    cursor: String!
+}
+
 
 extend type Query {
-    listAuthors(request: ListAuthorsInput!): AuthorPage!
+    listAuthors(request: ListAuthorsInput!): AuthorConnection!
 }
 ```
+
+5. The `graph/schema.graphql` file contains the `ListAuthorsInput` input type that is used to pass the pagination parameters to the query.
+```graphql
+input ListAuthorsInput @goModel(model: "cursor/storage.ListAuthorsParams") {
+    first: Int! @goField(name: "limit")
+    after: String! @goField(name: "cursor")
+}
+```
+
+6. The `graph/common.graphq` file contains the `PageInfo` type that is linked to the external `PageInfo` go struct to use the same type in GraphQL and Golang generators.
+
+
 ## How to use
 1. Install sqlc (https://docs.sqlc.dev/en/latest/overview/install.html)
 2. Add new queries to the storage/query.sql file
 3. Mark all new queries with the comment: 
 ```sql
 -- gql: <extended_type>.<query_name>
--- paginated: offset
+-- paginated: cursor:<comma separated list of fields>
 ``` 
 For example:
 ```sql
 -- gql: Query.getAllAuthors
--- paginated: offset
+-- paginated: cursor:-name,id
 SELECT * FROM authors;
 ```
 
@@ -95,8 +127,11 @@ mutation {
 ```
 12. Try to get all authors:
 ```graphql
-{
-    listAuthors(request:{limit:10, offset:0}){total, hasNext, items{id, name}}
+query {
+    listAuthors(request:{first:10, after:""}) {
+        edges{node{id, name}, cursor}
+        pageInfo{hasNextPage, endCursor}
+    }
 }
 
 ```
@@ -105,14 +140,19 @@ and you will see the list of authors like this:
 {
   "data": {
     "listAuthors": {
-      "total": 1,
-      "hasNext": false,
-      "items": [
+      "edges": [
         {
-          "id": 1,
-          "name": "John Doe"
+          "node": {
+            "id": 2,
+            "name": "Test Testov"
+          },
+          "cursor": "eyJuYW1lIjoiVGVzdCBUZXN0b3YiLCJpZCI6Mn0="
         }
-      ]
+      ],
+      "pageInfo": {
+        "hasNextPage": false,
+        "endCursor": "eyJuYW1lIjoiVGVzdCBUZXN0b3YiLCJpZCI6Mn0="
+      }
     }
   }
 }

@@ -8,6 +8,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 
+	"github.com/debugger84/sqlc-graphql/schema"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 

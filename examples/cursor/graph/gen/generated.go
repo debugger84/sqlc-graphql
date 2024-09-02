@@ -5,7 +5,6 @@ package gen
 import (
 	"bytes"
 	"context"
-	"cursor/graph/model"
 	"cursor/storage"
 	"errors"
 	"fmt"
@@ -16,6 +15,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
+	"github.com/debugger84/sqlc-graphql/schema"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -41,7 +41,6 @@ type Config struct {
 
 type ResolverRoot interface {
 	Author() AuthorResolver
-	AuthorConnection() AuthorConnectionResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
 	Subscription() SubscriptionResolver
@@ -93,9 +92,6 @@ type ComplexityRoot struct {
 
 type AuthorResolver interface {
 	Bio(ctx context.Context, obj *storage.Author) (*string, error)
-}
-type AuthorConnectionResolver interface {
-	PageInfo(ctx context.Context, obj *storage.AuthorConnection) (model.PageInfo, error)
 }
 type MutationResolver interface {
 	Ping(ctx context.Context) (string, error)
@@ -419,7 +415,7 @@ directive @goModel(model: String, models: [String!]) on OBJECT
 directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITION
 | FIELD_DEFINITION
 
-type PageInfo {
+type PageInfo @goModel(model: "github.com/debugger84/sqlc-graphql/schema.PageInfo") {
     hasNextPage: Boolean!
     hasPreviousPage: Boolean!
     startCursor: String!
@@ -804,7 +800,7 @@ func (ec *executionContext) _AuthorConnection_pageInfo(ctx context.Context, fiel
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.AuthorConnection().PageInfo(rctx, obj)
+		return obj.PageInfo, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -816,17 +812,17 @@ func (ec *executionContext) _AuthorConnection_pageInfo(ctx context.Context, fiel
 		}
 		return graphql.Null
 	}
-	res := resTmp.(model.PageInfo)
+	res := resTmp.(schema.PageInfo)
 	fc.Result = res
-	return ec.marshalNPageInfo2cursorᚋgraphᚋmodelᚐPageInfo(ctx, field.Selections, res)
+	return ec.marshalNPageInfo2githubᚗcomᚋdebugger84ᚋsqlcᚑgraphqlᚋschemaᚐPageInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_AuthorConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "AuthorConnection",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "hasNextPage":
@@ -1051,7 +1047,7 @@ func (ec *executionContext) fieldContext_Mutation_createAuthor(ctx context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _PageInfo_hasNextPage(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
+func (ec *executionContext) _PageInfo_hasNextPage(ctx context.Context, field graphql.CollectedField, obj *schema.PageInfo) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_PageInfo_hasNextPage(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -1095,7 +1091,7 @@ func (ec *executionContext) fieldContext_PageInfo_hasNextPage(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _PageInfo_hasPreviousPage(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
+func (ec *executionContext) _PageInfo_hasPreviousPage(ctx context.Context, field graphql.CollectedField, obj *schema.PageInfo) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -1139,7 +1135,7 @@ func (ec *executionContext) fieldContext_PageInfo_hasPreviousPage(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
+func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *schema.PageInfo) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_PageInfo_startCursor(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -1183,7 +1179,7 @@ func (ec *executionContext) fieldContext_PageInfo_startCursor(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _PageInfo_endCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
+func (ec *executionContext) _PageInfo_endCursor(ctx context.Context, field graphql.CollectedField, obj *schema.PageInfo) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_PageInfo_endCursor(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -3466,44 +3462,13 @@ func (ec *executionContext) _AuthorConnection(ctx context.Context, sel ast.Selec
 		case "edges":
 			out.Values[i] = ec._AuthorConnection_edges(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "pageInfo":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._AuthorConnection_pageInfo(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._AuthorConnection_pageInfo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3629,7 +3594,7 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 var pageInfoImplementors = []string{"PageInfo"}
 
-func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet, obj *model.PageInfo) graphql.Marshaler {
+func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet, obj *schema.PageInfo) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, pageInfoImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -4248,7 +4213,7 @@ func (ec *executionContext) unmarshalNListAuthorsInput2cursorᚋstorageᚐListAu
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNPageInfo2cursorᚋgraphᚋmodelᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v model.PageInfo) graphql.Marshaler {
+func (ec *executionContext) marshalNPageInfo2githubᚗcomᚋdebugger84ᚋsqlcᚑgraphqlᚋschemaᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v schema.PageInfo) graphql.Marshaler {
 	return ec._PageInfo(ctx, sel, &v)
 }
 

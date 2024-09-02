@@ -5,13 +5,6 @@ package model
 type Mutation struct {
 }
 
-type PageInfo struct {
-	HasNextPage     bool   `json:"hasNextPage"`
-	HasPreviousPage bool   `json:"hasPreviousPage"`
-	StartCursor     string `json:"startCursor"`
-	EndCursor       string `json:"endCursor"`
-}
-
 type Query struct {
 }
 

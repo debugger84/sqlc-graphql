@@ -7,7 +7,6 @@ package resolver
 import (
 	"context"
 	"cursor/graph/gen"
-	"cursor/graph/model"
 	"cursor/storage"
 )
 
@@ -19,26 +18,7 @@ func (r *authorResolver) Bio(ctx context.Context, obj *storage.Author) (*string,
 	return nil, nil
 }
 
-// PageInfo is the resolver for the pageInfo field.
-func (r *authorConnectionResolver) PageInfo(ctx context.Context, obj *storage.AuthorConnection) (
-	model.PageInfo,
-	error,
-) {
-	return model.PageInfo{
-		HasNextPage:     obj.PageInfo.HasNextPage,
-		HasPreviousPage: obj.PageInfo.HasPreviousPage,
-		StartCursor:     obj.PageInfo.StartCursor,
-		EndCursor:       obj.PageInfo.EndCursor,
-	}, nil
-}
-
 // Author returns gen.AuthorResolver implementation.
 func (r *Resolver) Author() gen.AuthorResolver { return &authorResolver{r} }
 
-// AuthorConnection returns gen.AuthorConnectionResolver implementation.
-func (r *Resolver) AuthorConnection() gen.AuthorConnectionResolver {
-	return &authorConnectionResolver{r}
-}
-
 type authorResolver struct{ *Resolver }
-type authorConnectionResolver struct{ *Resolver }
