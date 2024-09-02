@@ -1,18 +1,18 @@
 version: '2'
 plugins:
   - name: graphql
-    process:
-        cmd: "../../bin/sqlc-graphql"
-#    wasm:
-#      url: https://github.com/debugger84/sqlc-graphql/releases/download/v0.2.0/sqlc-graphql.wasm
-#      sha256: b7bb17d20b246627fbdf34e4997e1a191b3280d02f57d6b403c205dbf23e114c
+#    process:
+#        cmd: "../../bin/sqlc-graphql"
+    wasm:
+      url: https://github.com/debugger84/sqlc-graphql/releases/download/v0.2.2/sqlc-graphql.wasm
+      sha256: 4791910ca23fc14ea82325dd5942f57891e2c329d7918645afeea02c4c05418a
 
   - name: golang
-    process:
-      cmd: "../../../sqlc-gen-go/bin/sqlc-gen-go"
-#    wasm:
-#      url: https://github.com/debugger84/sqlc-gen-go/releases/download/v1.3.2/sqlc-gen-go.wasm
-#      sha256: 2fc0ab0cba9682f9c4e531e7b51b2ee0e844d6ed1569f6bd380233ba8b3eaa0d
+#    process:
+#      cmd: "../../../sqlc-gen-go/bin/sqlc-gen-go"
+    wasm:
+      url: https://github.com/debugger84/sqlc-gen-go/releases/download/v1.3.3/sqlc-gen-go.wasm
+      sha256: b6e6eea7cc19632b3571db75bd5dd46a5490896e7032861b614684abbc659647
 sql:
   - engine: "postgresql"
     schema:
