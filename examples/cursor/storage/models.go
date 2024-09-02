@@ -70,16 +70,9 @@ type Author struct {
 	CreatedAt pgtype.Timestamptz `json:"createdAt"`
 }
 
-type PageInfo struct {
-	StartCursor     string
-	EndCursor       string
-	HasNextPage     bool
-	HasPreviousPage bool
-}
-
 type AuthorConnection struct {
 	Edges    []AuthorEdge
-	PageInfo PageInfo
+	PageInfo schema.PageInfo
 }
 
 type AuthorEdge struct {

@@ -11,6 +11,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"github.com/debugger84/sqlc-graphql/schema"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -104,7 +105,7 @@ func (q *Queries) ListAuthors(ctx context.Context, arg ListAuthorsParams) (Autho
 	if arg.Cursor != "" {
 		hasPrevious = true
 	}
-	connection.PageInfo = PageInfo{
+	connection.PageInfo = schema.PageInfo{
 		HasNextPage:     hasNext,
 		HasPreviousPage: hasPrevious,
 	}

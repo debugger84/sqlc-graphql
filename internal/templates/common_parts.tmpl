@@ -32,7 +32,7 @@ directive @goModel(model: String, models: [String!]) on OBJECT
 directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITION
 | FIELD_DEFINITION
 
-type PageInfo {
+type PageInfo @goModel(model: "github.com/debugger84/sqlc-graphql/schema.PageInfo") {
     hasNextPage: Boolean!
     hasPreviousPage: Boolean!
     startCursor: String!
