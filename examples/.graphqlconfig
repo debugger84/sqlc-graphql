@@ -13,11 +13,23 @@
         "pagination/graphql/*.graphql"
       ]
     },
-    "client": {
+    "multimodular": {
       "name": "Multimodular example",
       "includes": [
         "multimodular/*/*.graphql",
         "multimodular/*/graphql/*.graphql"
+      ]
+    },
+    "cursor": {
+      "name": "Cursor pagination example",
+      "includes": [
+        "cursor/graphql/*.graphql"
+      ]
+    },
+    "dataloader": {
+      "name": "Dataloader example",
+      "includes": [
+        "dataloader/graphql/*.graphql"
       ]
     }
   }
