@@ -80,7 +80,7 @@ extend type Post {
 9. The `graph/resolver/extended.resolvesr.go` file contains the `Author` resolver where we use the dataloader to get the author of the post.
 ```go
 func (r *postResolver) Author(ctx context.Context, obj *storage.Post) (storage.Author, error) {
-	return r.AuthorLoader.Load(ctx, obj.AuthorID)
+	return r.LoaderFactory.AuthorLoader().Load(ctx, obj.AuthorID)
 }
 ```
 

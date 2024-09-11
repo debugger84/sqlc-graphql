@@ -39,14 +39,14 @@ func main() {
 	defer conn.Close(ctx)
 
 	queries := storage.New(conn)
-	authorLoader := dataloader.NewAuthorLoader(conn)
+	loaderFactory := dataloader.NewLoaderFactory(conn)
 
 	srv := handler.NewDefaultServer(
 		gen.NewExecutableSchema(
 			gen.Config{
 				Resolvers: &resolver.Resolver{
-					Queries:      queries,
-					AuthorLoader: authorLoader,
+					Queries:       queries,
+					LoaderFactory: loaderFactory,
 				},
 			},
 		),

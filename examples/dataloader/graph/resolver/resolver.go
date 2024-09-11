@@ -10,6 +10,6 @@ import (
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	Queries      *storage.Queries
-	AuthorLoader *dataloader.AuthorLoader
+	Queries       *storage.Queries
+	LoaderFactory *dataloader.LoaderFactory
 }

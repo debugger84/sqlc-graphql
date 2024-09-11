@@ -11,5 +11,5 @@ import (
 
 // Author is the resolver for the author field.
 func (r *postResolver) Author(ctx context.Context, obj *storage.Post) (storage.Author, error) {
-	return r.AuthorLoader.Load(ctx, obj.AuthorID)
+	return r.LoaderFactory.AuthorLoader().Load(ctx, obj.AuthorID)
 }
