@@ -1,8 +1,9 @@
 version: '2'
 plugins:
   - name: dataloader
-    process:
-      cmd: "../../../sqlc-dataloader/bin/sqlc-dataloader"
+    wasm:
+      url: https://github.com/debugger84/sqlc-dataloader/releases/download/v0.1.0/sqlc-dataloader.wasm
+      sha256: 0f648ab6e0e5b12ceff8acb63d8ee9330456f0605b1ee12ab0d29f6fd14125ec
 
   - name: graphql
     wasm:
