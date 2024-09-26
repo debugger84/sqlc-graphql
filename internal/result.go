@@ -82,6 +82,7 @@ func buildStructs(req *plugin.GenerateRequest, options *opts.Options) []Struct {
 				Name:    StructName(structName, options),
 				Comment: table.Comment,
 			}
+			s.ModelPath = options.Package + "." + s.Name
 			for _, column := range table.Columns {
 				s.Fields = append(
 					s.Fields, Field{
@@ -541,7 +542,8 @@ func addPageStruct(original Struct, structs []Struct) []Struct {
 		}
 	}
 	pageStruct := Struct{
-		Name: pageName,
+		Name:      pageName,
+		ModelPath: original.ModelPath + "Page",
 		Fields: []Field{
 			{
 				Name:    "Items",
@@ -581,7 +583,8 @@ func addConnectionStruct(original Struct, structs []Struct) []Struct {
 	}
 
 	edgeStruct := Struct{
-		Name: edgeName,
+		Name:      edgeName,
+		ModelPath: original.ModelPath + "Edge",
 		Fields: []Field{
 			{
 				Name: "Node",
@@ -607,7 +610,8 @@ func addConnectionStruct(original Struct, structs []Struct) []Struct {
 	}
 
 	connectionStruct := Struct{
-		Name: connectionName,
+		Name:      connectionName,
+		ModelPath: original.ModelPath + "Connection",
 		Fields: []Field{
 			{
 				Name:    "Edges",
