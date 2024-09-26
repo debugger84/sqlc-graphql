@@ -28,7 +28,7 @@ enum {{.Name}}  @goModel(model: "{{$.ModelPackage}}.{{.Name}}") {
 {{ .Comment}}
 """
     {{- end }}
-type {{.Name}} @goModel(model: "{{$.ModelPackage}}.{{.Name}}") {
+type {{.Name}} @goModel(model: "{{.ModelPath}}") {
 {{- range .Fields -}}
     {{ if .Comment }}
     """

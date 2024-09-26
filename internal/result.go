@@ -186,6 +186,7 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 		comments := query.Comments
 		var extendedType string
 		resolverName := query.Name
+		returnType := ""
 		for i, comment := range comments {
 			parts := strings.Split(comment, ":")
 			if len(parts) > 1 && strings.Trim(parts[0], " ") == "gql" {
@@ -194,6 +195,9 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 				extendedType = resolverInfo[0]
 				if len(resolverInfo) > 1 {
 					resolverName = resolverInfo[1]
+				}
+				if len(parts) > 2 {
+					returnType = strings.Trim(parts[2], " ")
 				}
 				comments = append(comments[:i], comments[i+1:]...)
 				break
@@ -226,6 +230,10 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 			ResolverName:     resolverName,
 			Paginated:        paginated,
 			CursorPagination: cursorPagination,
+		}
+
+		if returnType == "" {
+			returnType = gq.MethodName + "Row"
 		}
 
 		qpl := int(*options.QueryParameterLimit)
@@ -366,13 +374,15 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 					)
 				}
 				var err error
-				gs, err = columnsToStruct(req, options, gq.MethodName+"Row", columns, true)
+				gs, err = columnsToStruct(req, options, returnType, columns, true)
 				if err != nil {
 					return nil, err
 				}
 				emit = true
 				modelPath = options.Package + "." + gq.MethodName + "Row"
 			}
+			gs.ModelPath = modelPath
+
 			gq.Ret = QueryValue{
 				Emit:      emit,
 				Name:      "i",

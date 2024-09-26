@@ -10,10 +10,11 @@ import (
 )
 
 type Struct struct {
-	Table   *plugin.Identifier
-	Name    string
-	Fields  []Field
-	Comment string
+	Table     *plugin.Identifier
+	Name      string
+	Fields    []Field
+	Comment   string
+	ModelPath string
 }
 
 func StructName(name string, options *opts.Options) string {
