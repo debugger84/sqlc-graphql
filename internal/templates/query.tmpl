@@ -24,16 +24,16 @@ extend type {{.}} {
     """
 {{- end -}}
 {{- if eq .Cmd ":one"}}
-    {{lowerTitle .ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: {{.Ret.DefineType}}
+    {{lowerTitle .ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: {{.Ret.DefineType}}{{if .Directive}} {{.Directive}}{{end}}
 {{- end -}}
 {{- if eq .Cmd ":many"}}
-    {{lowerTitle .ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: {{.ReturnedType}}
+    {{lowerTitle .ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: {{.ReturnedType}}{{if .Directive}} {{.Directive}}{{end}}
 {{- end -}}
 {{- if eq .Cmd ":exec"}}
-    {{lowerTitle .ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: Boolean!
+    {{lowerTitle .ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: Boolean!{{if .Directive}} {{.Directive}}{{end}}
 {{- end -}}
 {{- if eq .Cmd ":execrows"}}
-    {{lowerTitle .ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: Int!
+    {{lowerTitle .ResolverName}}{{ if .Arg.Pair }}({{.Arg.Pair}}){{ end }}: Int!{{if .Directive}} {{.Directive}}{{end}}
 {{- end -}}
             {{- end }}
 }

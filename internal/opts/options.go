@@ -9,6 +9,12 @@ import (
 	"github.com/sqlc-dev/plugin-sdk-go/plugin"
 )
 
+type Directive struct {
+	Model     string `json:"model" yaml:"model"`
+	Field     string `json:"field" yaml:"field"`
+	Directive string `json:"directive" yaml:"directive"`
+}
+
 type Options struct {
 	Package                     string            `json:"package" yaml:"package"`
 	Out                         string            `json:"out" yaml:"out"`
@@ -24,10 +30,10 @@ type Options struct {
 	OmitSqlcVersion             bool              `json:"omit_sqlc_version,omitempty" yaml:"omit_sqlc_version"`
 	OmitUnusedStructs           bool              `json:"omit_unused_structs,omitempty" yaml:"omit_unused_structs"`
 	DefaultSchema               string            `json:"default_schema,omitempty" yaml:"default_schema"`
-	//GqlModelPackage             string            `json:"gql_model_package,omitempty" yaml:"gql_model_package"`
-	//GqlOut                      string            `json:"gql_out,omitempty" yaml:"gql_out"`
-	GenCommonParts bool     `json:"gen_common_parts,omitempty" yaml:"gen_common_parts"`
-	Exclude        []string `json:"exclude,omitempty" yaml:"exclude"`
+
+	GenCommonParts bool        `json:"gen_common_parts,omitempty" yaml:"gen_common_parts"`
+	Exclude        []string    `json:"exclude,omitempty" yaml:"exclude"`
+	Directives     []Directive `json:"directives,omitempty" yaml:"directives"`
 }
 
 type GlobalOptions struct {

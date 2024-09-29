@@ -12,6 +12,16 @@ It has the capability to create a GraphQL schema based on the database schema, a
 - Generates comments for the GraphQL queries
 - Generates queries for the GraphQL schema using the SQL queries as a base.
 
+## TODO
+- Make direct transformation of the SQL column type to the GraphQL field type. Now it is possible only by defining the table and column types.
+```yaml
+            - db_type: "pg_catalog.timestamp"
+              gql_type: "Time"
+```
+- Generate query with not required parameter field
+- Generate dataloader for the bridge table
+- Add directives to queries
+
 ## How to use
 1. Install sqlc (https://docs.sqlc.dev/en/latest/overview/install.html)
 2. Make a project with sqlc (https://docs.sqlc.dev/en/latest/tutorials/getting-started-postgresql.html)

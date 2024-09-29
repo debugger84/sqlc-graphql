@@ -77,18 +77,21 @@ func buildStructs(req *plugin.GenerateRequest, options *opts.Options) []Struct {
 					},
 				)
 			}
+			modelName := StructName(structName, options)
 			s := Struct{
 				Table:   &plugin.Identifier{Schema: schema.Name, Name: table.Rel.Name},
-				Name:    StructName(structName, options),
+				Name:    modelName,
 				Comment: table.Comment,
 			}
 			s.ModelPath = options.Package + "." + s.Name
 			for _, column := range table.Columns {
+				fieldName := StructName(column.Name, options)
 				s.Fields = append(
 					s.Fields, Field{
-						Name:    StructName(column.Name, options),
-						Type:    gqlType(req, options, column),
-						Comment: column.Comment,
+						Name:      fieldName,
+						Type:      gqlType(req, options, column),
+						Comment:   column.Comment,
+						Directive: parseDirective(options.Directives, modelName, fieldName),
 					},
 				)
 			}
@@ -188,6 +191,7 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 		var extendedType string
 		resolverName := query.Name
 		returnType := ""
+		directive := ""
 		for i, comment := range comments {
 			parts := strings.Split(comment, ":")
 			if len(parts) > 1 && strings.Trim(parts[0], " ") == "gql" {
@@ -198,7 +202,12 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 					resolverName = resolverInfo[1]
 				}
 				if len(parts) > 2 {
-					returnType = strings.Trim(parts[2], " ")
+					returnType = strings.TrimSpace(parts[2])
+					directiveParts := strings.Split(returnType, "@")
+					if len(directiveParts) > 1 {
+						returnType = strings.TrimSpace(directiveParts[0])
+						directive = "@" + strings.Join(directiveParts[1:], "@")
+					}
 				}
 				comments = append(comments[:i], comments[i+1:]...)
 				break
@@ -222,6 +231,14 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 			}
 		}
 
+		parsedDirective := parseDirective(options.Directives, extendedType, resolverName)
+		if parsedDirective != "" {
+			if directive != "" {
+				directive += " " + parsedDirective
+			} else {
+				directive = parsedDirective
+			}
+		}
 		gq := Query{
 			Cmd:              query.Cmd,
 			Comments:         comments,
@@ -229,6 +246,7 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 			SourceName:       query.Filename,
 			ExtendedType:     extendedType,
 			ResolverName:     resolverName,
+			Directive:        directive,
 			Paginated:        paginated,
 			CursorPagination: cursorPagination,
 		}
@@ -462,7 +480,7 @@ func columnsToStruct(
 			DBName: colName,
 			Column: c.Column,
 		}
-		f.Directive = parseDirective(options, c.Column)
+		f.Directive = parseDirective(options.Directives, name, fieldName)
 		if c.embed == nil {
 			f.Type = gqlType(req, options, c.Column)
 		} else {
@@ -644,22 +662,33 @@ func addConnectionStruct(original Struct, structs []Struct) []Struct {
 	return structs
 }
 
-func parseDirective(options *opts.Options, column *plugin.Column) string {
-	directive := ""
-	//TODO: Implement directive parsing
+func parseDirective(directives []opts.Directive, modelName, fieldName string) string {
+	res := make([]string, 0)
+	for _, directive := range directives {
+		if strings.EqualFold(modelName, directive.Model) {
+			if directive.Field == "" || strings.EqualFold(fieldName, directive.Field) {
+				dn := strings.TrimSpace(directive.Directive)
+				if !strings.HasPrefix(dn, "@") {
+					dn = "@" + dn
+				}
+				res = append(res, dn)
+			}
+		}
+	}
 
-	return directive
+	return strings.Join(res, " ")
 }
 
 func addDefaultDirectivesToPaginationInputFields(fields []Field) []Field {
 	res := make([]Field, 0, len(fields))
 	for _, f := range fields {
-		if f.Name == "First" && f.Directive == "" {
-			f.Directive = "@goField(name: \"limit\")"
+		if f.Name == "First" && !strings.Contains(f.Directive, "@goField") {
+			f.Directive += " @goField(name: \"limit\")"
 		}
-		if f.Name == "After" && f.Directive == "" {
-			f.Directive = "@goField(name: \"cursor\")"
+		if f.Name == "After" && !strings.Contains(f.Directive, "@goField") {
+			f.Directive += " @goField(name: \"cursor\")"
 		}
+		f.Directive = strings.TrimSpace(f.Directive)
 		res = append(res, f)
 	}
 	return res

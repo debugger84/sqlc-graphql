@@ -257,6 +257,7 @@ type Query struct {
 	SourceName   string
 	ExtendedType string
 	ResolverName string
+	Directive    string
 	Ret          QueryValue
 	Arg          QueryValue
 
