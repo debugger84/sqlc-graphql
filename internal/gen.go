@@ -17,6 +17,9 @@ func Generate(ctx context.Context, req *plugin.GenerateRequest) (*plugin.Generat
 		return nil, err
 	}
 
+	if options.SkipGeneration {
+		return &plugin.GenerateResponse{}, nil
+	}
 	if options.DefaultSchema != "" {
 		req.Catalog.DefaultSchema = options.DefaultSchema
 	}

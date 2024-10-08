@@ -30,6 +30,7 @@ type Options struct {
 	OmitSqlcVersion             bool              `json:"omit_sqlc_version,omitempty" yaml:"omit_sqlc_version"`
 	OmitUnusedStructs           bool              `json:"omit_unused_structs,omitempty" yaml:"omit_unused_structs"`
 	DefaultSchema               string            `json:"default_schema,omitempty" yaml:"default_schema"`
+	SkipGeneration              bool              `json:"skip_generation,omitempty" yaml:"skip_generation"`
 
 	GenCommonParts bool        `json:"gen_common_parts,omitempty" yaml:"gen_common_parts"`
 	Exclude        []string    `json:"exclude,omitempty" yaml:"exclude"`
