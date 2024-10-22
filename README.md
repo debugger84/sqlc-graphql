@@ -19,8 +19,13 @@ It has the capability to create a GraphQL schema based on the database schema, a
               gql_type: "Time"
 ```
 - Generate query with not required parameter field
-- Generate dataloader for the bridge table
-- Add directives to queries
++ Fix error if the primary key of dataloader is of type Enum defined in the schema
++ Return own error instead of pgx.ErrNoRows from dataloader if the row is not found
++ Manage dataloader cache
++ Add directives to queries
+- Set fields that should have own resolvers after generation in the gqlgen
+- Set config to remove parameters from the query
+- Add the ability to rename Row type names by golang type names
 
 ## How to use
 1. Install sqlc (https://docs.sqlc.dev/en/latest/overview/install.html)
@@ -53,6 +58,10 @@ sql:
           emit_all_enum_values: true
           ## create several default types and directives to work in conjunction with the gqlgen library https://gqlgen.com/
           gen_common_parts: true
+          directives:
+            - model: "Test"
+              field: "CreatedAt"
+              directive: "json"
           ## override a column type with a custom GraphQL type
           ## the type should be described manually in the extended.graphql file 
           overrides:
