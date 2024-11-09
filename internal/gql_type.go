@@ -33,7 +33,14 @@ func gqlType(req *plugin.GenerateRequest, options *opts.Options, col *plugin.Col
 			cname = col.OriginalName
 		}
 		sameTable := override.Matches(col.Table, req.Catalog.DefaultSchema)
-		if oride.Column != "" && sdk.MatchString(oride.ColumnName, cname) && sameTable {
+		dbTypeParts := strings.Split(oride.DbType, ".")
+		schema := ""
+		typeName := dbTypeParts[len(dbTypeParts)-1]
+		if len(dbTypeParts) > 1 {
+			schema = dbTypeParts[0]
+		}
+		if (oride.Column != "" && sdk.MatchString(oride.ColumnName, cname) && sameTable) ||
+			(col.Type != nil && col.Type.Name == typeName && col.Type.Schema == schema) {
 			tn := override.GqlType
 			if col.NotNull {
 				tn += "!"

@@ -105,8 +105,8 @@ func (o *Override) parse(req *plugin.GenerateRequest) (err error) {
 	switch {
 	case o.Column != "" && o.DBType != "":
 		return fmt.Errorf("Override specifying both `column` (%q) and `db_type` (%q) is not valid.", o.Column, o.DBType)
-	case o.Column == "" && o.DBType == "":
-		return fmt.Errorf("Override must specify one of either `column` or `db_type`")
+	case o.Column == "" && o.DBType == "" && o.GoType.Name == "":
+		return fmt.Errorf("Override must specify one of either `column` or `db_type` or `go_type`")
 	}
 
 	// validate Column

@@ -109,6 +109,97 @@ func TestGenerate(t *testing.T) {
 			}
 		},
 	)
+	t.Run(
+		"Overwrite SQL type by custom Gql type", func(t *testing.T) {
+			factory := NewGenReqFactory()
+			factory.options.Overrides = []opts.Override{
+				{
+					DBType:  "text",
+					GqlType: "MyText",
+				},
+				{
+					DBType:  "public.status",
+					GqlType: "MyStatus",
+				},
+			}
+			req := factory.GenerateRequest()
+
+			resp, err := golang.Generate(ctx, req)
+
+			t.Log("Given the options with adding directives to the query and the Author type are passed to the generator")
+			t.Log("When the generator is called")
+			t.Log("	Then the generator should return a response without an error")
+			require.NoError(t, err)
+			t.Log("	And the response should contain authGuard directive in the generated code")
+			require.NotNil(t, resp)
+			require.Len(t, resp.Files, 2)
+			snaps.WithConfig(snaps.Ext("."+resp.Files[0].Name)).
+				MatchStandaloneSnapshot(t, string(resp.Files[0].Contents))
+			snaps.WithConfig(snaps.Ext("."+resp.Files[1].Name)).
+				MatchStandaloneSnapshot(t, string(resp.Files[1].Contents))
+
+			for _, file := range resp.Files {
+				if file.Name == "schema.graphql" {
+					require.Contains(
+						t,
+						string(file.Contents),
+						"name: MyText",
+						"The name field should be of type MyText",
+					)
+					require.Contains(
+						t,
+						string(file.Contents),
+						"status: MyStatus",
+						"The status field should be of type MyStatus",
+					)
+				} else {
+					require.Contains(
+						t,
+						string(file.Contents),
+						"author(id: UUID!): Author!",
+						"The author query should return Author",
+					)
+				}
+			}
+		},
+	)
+	t.Run(
+		"Overwrite Gql type of a column", func(t *testing.T) {
+			factory := NewGenReqFactory()
+			factory.options.Overrides = []opts.Override{
+				{
+					Column:  "authors.name",
+					GqlType: "MyText",
+				},
+			}
+			req := factory.GenerateRequest()
+
+			resp, err := golang.Generate(ctx, req)
+
+			t.Log("Given the options with adding directives to the query and the Author type are passed to the generator")
+			t.Log("When the generator is called")
+			t.Log("	Then the generator should return a response without an error")
+			require.NoError(t, err)
+			t.Log("	And the response should contain authGuard directive in the generated code")
+			require.NotNil(t, resp)
+			require.Len(t, resp.Files, 2)
+			snaps.WithConfig(snaps.Ext("."+resp.Files[0].Name)).
+				MatchStandaloneSnapshot(t, string(resp.Files[0].Contents))
+			snaps.WithConfig(snaps.Ext("."+resp.Files[1].Name)).
+				MatchStandaloneSnapshot(t, string(resp.Files[1].Contents))
+
+			for _, file := range resp.Files {
+				if file.Name == "schema.graphql" {
+					require.Contains(
+						t,
+						string(file.Contents),
+						"name: MyText",
+						"The name field should be of type MyText",
+					)
+				}
+			}
+		},
+	)
 
 	t.Run(
 		"Generate mutation", func(t *testing.T) {

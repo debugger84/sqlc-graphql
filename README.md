@@ -13,7 +13,7 @@ It has the capability to create a GraphQL schema based on the database schema, a
 - Generates queries for the GraphQL schema using the SQL queries as a base.
 
 ## TODO
-- Make direct transformation of the SQL column type to the GraphQL field type. Now it is possible only by defining the table and column types.
++ Make direct transformation of the SQL column type to the GraphQL field type. Now it is possible only by defining the table and column types.
 ```yaml
             - db_type: "pg_catalog.timestamp"
               gql_type: "Time"
@@ -23,9 +23,21 @@ It has the capability to create a GraphQL schema based on the database schema, a
 + Return own error instead of pgx.ErrNoRows from dataloader if the row is not found
 + Manage dataloader cache
 + Add directives to queries
-- Set fields that should have own resolvers after generation in the gqlgen
++ Set fields that should have own resolvers after generation in the gqlgen (use directives)
 - Set config to remove parameters from the query
+```graphql
+# remove id from the query
+    author(id: UUID!): Author!
+```
 - Add the ability to rename Row type names by golang type names
+- Exclude types from the schema generation
+- Add config to generate everything in one file
+- Make the ability to generate query from comment that is like this
+```sql
+-- name: getAuthor :one
+-- gql: Query.author(id: UUID!): Author! @resolver(name: "GetAuthor")
+```
+- Create a fixture if the primary key is not named as id
 
 ## How to use
 1. Install sqlc (https://docs.sqlc.dev/en/latest/overview/install.html)
@@ -65,9 +77,16 @@ sql:
           ## override a column type with a custom GraphQL type
           ## the type should be described manually in the extended.graphql file 
           overrides:
+            ## override a column type with a custom GraphQL type
             - column: "test.img"
               gql_type: "Image"
               nullable: true
+            ## override SQL type with a custom GraphQL type
+            - db_type: "pg_catalog.timestamp"
+              gql_type: "Time"
+            ## override GO type with a custom GraphQL type
+            - go_type: "tutorial/tutorial.NullImage"
+              gql_type: "Image"
           ## exclude columns from the generated schema
           ## Test - is the generated Graphql object 
           ## and CreatedAt is the column name to be excluded    
