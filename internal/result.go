@@ -381,6 +381,9 @@ func buildQueries(req *plugin.GenerateRequest, options *opts.Options, structs []
 			}
 
 			modelPath := options.Package + "." + gq.MethodName
+			if paginated && gs != nil {
+				modelPath = gs.ModelPath
+			}
 			if gs == nil {
 				var columns []goColumn
 				for i, c := range query.Columns {

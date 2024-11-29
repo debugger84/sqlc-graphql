@@ -35,6 +35,68 @@ func TestGenerate(t *testing.T) {
 	)
 
 	t.Run(
+		"Generate paginated query", func(t *testing.T) {
+			factory := NewGenReqFactory()
+			req := factory.GenerateRequest()
+			req.Queries[0].Comments = append(
+				req.Queries[0].Comments,
+				"gql: Query.authorsPaginated",
+				"paginated:cursor:name,id",
+			)
+
+			resp, err := golang.Generate(ctx, req)
+
+			t.Log("Given the 'select * from authors' SQL query is passed to the generator")
+			t.Log("Given the comments with gql and paginated are added to the query")
+			t.Log("When the generator is called")
+			t.Log("	Then the generator should return a response without an error")
+			require.NoError(t, err)
+			t.Log("	And the response should contain the generated code")
+			require.NotNil(t, resp)
+			require.Len(t, resp.Files, 2)
+			snaps.WithConfig(snaps.Ext("."+resp.Files[0].Name)).
+				MatchStandaloneSnapshot(t, string(resp.Files[0].Contents))
+			snaps.WithConfig(snaps.Ext("."+resp.Files[1].Name)).
+				MatchStandaloneSnapshot(t, string(resp.Files[1].Contents))
+		},
+	)
+	t.Run(
+		"Generate offset pagination query", func(t *testing.T) {
+			factory := NewGenReqFactory()
+			req := factory.GenerateRequest()
+			columns := req.Queries[0].Columns
+			req.Queries[0] = &plugin.Query{
+				Text:    "select id, name, status from authors",
+				Name:    "PaginatedAuthors",
+				Cmd:     ":many",
+				Columns: columns,
+				Params:  []*plugin.Parameter{},
+				Comments: []string{
+					"gql: Query.paginatedAuthors",
+					"gql: Query.authorsPaginated",
+					"paginated:offset",
+				},
+				Filename: "authors.sql",
+			}
+
+			resp, err := golang.Generate(ctx, req)
+
+			t.Log("Given the 'select * from authors' SQL query is passed to the generator")
+			t.Log("Given the comments with gql and paginated are added to the query")
+			t.Log("When the generator is called")
+			t.Log("	Then the generator should return a response without an error")
+			require.NoError(t, err)
+			t.Log("	And the response should contain the generated code")
+			require.NotNil(t, resp)
+			require.Len(t, resp.Files, 2)
+			snaps.WithConfig(snaps.Ext("."+resp.Files[0].Name)).
+				MatchStandaloneSnapshot(t, string(resp.Files[0].Contents))
+			snaps.WithConfig(snaps.Ext("."+resp.Files[1].Name)).
+				MatchStandaloneSnapshot(t, string(resp.Files[1].Contents))
+		},
+	)
+
+	t.Run(
 		"Exclude field", func(t *testing.T) {
 			factory := NewGenReqFactory()
 			factory.options.Exclude = []string{"Author.name"}
