@@ -92,6 +92,11 @@ sql:
           ## and CreatedAt is the column name to be excluded    
           exclude:
             - "Test.CreatedAt"
+          ## rename the GraphQL type
+          rename:
+            ## renames like this type RenamedAuthor @goModel(model: "authors/storage.Author")
+            ## if you want to rename both the type and the model, you can place a key as a name of a table rather than a GQL type
+            "Author": "RenamedAuthor"
       ## options for the default golang generation plugin https://github.com/sqlc-dev/sqlc-gen-go
       - plugin: golang
         out: "./"

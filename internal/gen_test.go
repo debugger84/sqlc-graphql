@@ -35,6 +35,38 @@ func TestGenerate(t *testing.T) {
 	)
 
 	t.Run(
+		"Rename GQL type without renaming Go Struct", func(t *testing.T) {
+			factory := NewGenReqFactory()
+			factory.options.Rename = map[string]string{
+				"Author": "RenamedAuthor",
+			}
+			req := factory.GenerateRequest()
+
+			resp, err := golang.Generate(ctx, req)
+
+			t.Log("Given the 'select * from authors' SQL query is passed to the generator")
+			t.Log("When the generator is called")
+			t.Log("	Then the generator should return a response without an error")
+			require.NoError(t, err)
+			t.Log("	And the response should contain the generated code")
+			require.NotNil(t, resp)
+			require.Len(t, resp.Files, 2)
+			require.Len(t, resp.Files, 2)
+			for _, file := range resp.Files {
+				if file.Name == "schema.graphql" {
+					snaps.WithConfig(snaps.Ext("."+file.Name)).
+						MatchStandaloneSnapshot(t, string(file.Contents))
+					require.Contains(
+						t,
+						string(file.Contents),
+						"type RenamedAuthor @goModel(model: \"authors/storage.Author\")",
+					)
+				}
+			}
+		},
+	)
+
+	t.Run(
 		"Generate paginated query", func(t *testing.T) {
 			factory := NewGenReqFactory()
 			req := factory.GenerateRequest()

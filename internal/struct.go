@@ -17,6 +17,14 @@ type Struct struct {
 	ModelPath string
 }
 
+func NormalizeModelName(StructName string, options *opts.Options) string {
+	if rename := options.Rename[StructName]; rename != "" {
+		return rename
+	}
+
+	return StructName
+}
+
 func StructName(name string, options *opts.Options) string {
 	if rename := options.Rename[name]; rename != "" {
 		return rename

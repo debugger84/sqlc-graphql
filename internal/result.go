@@ -77,13 +77,13 @@ func buildStructs(req *plugin.GenerateRequest, options *opts.Options) []Struct {
 					},
 				)
 			}
-			modelName := StructName(structName, options)
+			structName = StructName(structName, options)
 			s := Struct{
 				Table:   &plugin.Identifier{Schema: schema.Name, Name: table.Rel.Name},
-				Name:    modelName,
+				Name:    NormalizeModelName(structName, options),
 				Comment: table.Comment,
 			}
-			s.ModelPath = options.Package + "." + s.Name
+			s.ModelPath = options.Package + "." + structName
 			for _, column := range table.Columns {
 				fieldName := StructName(column.Name, options)
 				s.Fields = append(
@@ -91,7 +91,7 @@ func buildStructs(req *plugin.GenerateRequest, options *opts.Options) []Struct {
 						Name:      fieldName,
 						Type:      gqlType(req, options, column),
 						Comment:   column.Comment,
-						Directive: parseDirective(options.Directives, modelName, fieldName),
+						Directive: parseDirective(options.Directives, structName, fieldName),
 					},
 				)
 			}
