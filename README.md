@@ -30,7 +30,6 @@ It has the capability to create a GraphQL schema based on the database schema, a
     author(id: UUID!): Author!
 ```
 - Add the ability to rename Row type names by golang type names
-- Exclude types from the schema generation
 - Add config to generate everything in one file
 - Make the ability to generate query from comment that is like this
 ```sql
@@ -87,11 +86,15 @@ sql:
             ## override GO type with a custom GraphQL type
             - go_type: "tutorial/tutorial.NullImage"
               gql_type: "Image"
-          ## exclude columns from the generated schema
-          ## Test - is the generated Graphql object 
-          ## and CreatedAt is the column name to be excluded    
+          ## exclude entire graphql types or specific fields
           exclude:
-            - "Test.CreatedAt"
+            ## Exclude one specific field from a type
+            - "Author.CreatedAt"
+            ## You can exclude multiple fields from the same type
+            - "Author.UpdatedAt"
+            - "Author.DeletedAt" 
+            ## Exclude an entire type from the schema
+            - "BookAuthor"
           ## rename the GraphQL type
           rename:
             ## renames like this type RenamedAuthor @goModel(model: "authors/storage.Author")

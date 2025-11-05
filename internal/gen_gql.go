@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
-	"github.com/debugger84/sqlc-graphql/internal/opts"
-	"github.com/sqlc-dev/plugin-sdk-go/plugin"
-	"github.com/sqlc-dev/plugin-sdk-go/sdk"
 	"slices"
 	"strings"
 	"text/template"
+
+	"github.com/debugger84/sqlc-graphql/internal/opts"
+	"github.com/sqlc-dev/plugin-sdk-go/plugin"
+	"github.com/sqlc-dev/plugin-sdk-go/sdk"
 )
 
 type gqlTmplCtx struct {
@@ -40,11 +41,11 @@ func generateGql(
 	structs []Struct,
 	queries []Query,
 ) (*plugin.GenerateResponse, error) {
-	excludedFields, err := getGqlExcluded(options)
+	excludedTypes, excludedFields, err := getGqlExcluded(options)
 	if err != nil {
 		return nil, err
 	}
-	structs = filterStructs(structs, excludedFields)
+	structs = filterStructs(structs, excludedTypes, excludedFields)
 
 	tctx := gqlTmplCtx{
 		ModelPackage:    options.Package,
@@ -75,7 +76,7 @@ func generateGql(
 		var b bytes.Buffer
 		w := bufio.NewWriter(&b)
 		tctx.SourceName = name
-		tctx.GoQueries = filterQueries(name, queries, excludedFields)
+		tctx.GoQueries = filterQueries(name, queries, excludedTypes, excludedFields)
 		tctx.ExtendedTypes = getExtendedTypes(tctx.GoQueries)
 		err := tmpl.ExecuteTemplate(w, templateName, &tctx)
 		w.Flush()
@@ -155,20 +156,25 @@ func extractGqlCommentsOnly(comments []string) []string {
 
 }
 
-func filterQueries(sourceName string, queries []Query, excludedFields map[string][]string) []Query {
+func filterQueries(
+	sourceName string,
+	queries []Query,
+	excludedTypes map[string]struct{},
+	excludedFields map[string][]string,
+) []Query {
 	var result []Query
 	for _, q := range queries {
 		if q.SourceName == sourceName {
 			q.Comments = extractGqlCommentsOnly(q.Comments)
 			if q.Arg.Struct != nil {
-				args := filterStructs([]Struct{*q.Arg.Struct}, excludedFields)
+				args := filterStructs([]Struct{*q.Arg.Struct}, excludedTypes, excludedFields)
 				if len(args) == 1 {
 					q.Arg.Struct = &args[0]
 				}
 			}
 
 			if q.Ret.Struct != nil {
-				returns := filterStructs([]Struct{*q.Ret.Struct}, excludedFields)
+				returns := filterStructs([]Struct{*q.Ret.Struct}, excludedTypes, excludedFields)
 				if len(returns) == 1 {
 					q.Ret.Struct = &returns[0]
 				}
@@ -194,10 +200,15 @@ func getExtendedTypes(queries []Query) []string {
 	return result
 }
 
-func getGqlExcluded(options *opts.Options) (map[string][]string, error) {
-	res := make(map[string][]string)
+func getGqlExcluded(options *opts.Options) (
+	excludedTypes map[string]struct{},
+	excludedFields map[string][]string,
+	err error,
+) {
+	excludedTypes = make(map[string]struct{})
+	excludedFields = make(map[string][]string)
 	if options == nil || options.Exclude == nil {
-		return nil, nil
+		return
 	}
 	for _, exclude := range options.Exclude {
 		parts := strings.Split(exclude, ".")
@@ -205,25 +216,36 @@ func getGqlExcluded(options *opts.Options) (map[string][]string, error) {
 		if len(parts) == 0 {
 			continue
 		}
-
-		if len(parts) != 2 {
-			return nil, errors.New("invalid exclude format. It should be in the format of 'GqlTypeName.fieldName'")
+		if len(parts) > 2 {
+			err = errors.New("invalid exclude format. To exclude single field from type use 'GqlTypeName.fieldName'. To exclude entire type use 'GqlTypeName'")
+			return
 		}
 		typeName := strings.ToLower(parts[0])
-		fieldName := strings.ToLower(parts[1])
-		if _, ok := res[typeName]; !ok {
-			res[typeName] = make([]string, 0)
+		if len(parts) == 1 {
+			excludedTypes[typeName] = struct{}{}
+			continue
 		}
-		res[typeName] = append(res[typeName], fieldName)
+		if _, ok := excludedFields[typeName]; !ok {
+			excludedFields[typeName] = make([]string, 0)
+		}
+		fieldName := strings.ToLower(parts[1])
+		excludedFields[typeName] = append(excludedFields[typeName], fieldName)
 	}
-	return res, nil
+	return
 }
 
-func filterStructs(structs []Struct, excludeFields map[string][]string) []Struct {
+func filterStructs(
+	structs []Struct,
+	excludedTypes map[string]struct{},
+	excludeFields map[string][]string,
+) []Struct {
 	var result []Struct
 	for _, s := range structs {
 		var fields []Field
 		structName := strings.ToLower(s.Name)
+		if _, ok := excludedTypes[structName]; ok {
+			continue
+		}
 		for _, f := range s.Fields {
 			if _, ok := excludeFields[structName]; ok {
 				fieldName := strings.ToLower(f.Name)

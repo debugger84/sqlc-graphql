@@ -3,12 +3,13 @@ package golang_test
 import (
 	"context"
 	"encoding/json"
+	"testing"
+
 	golang "github.com/debugger84/sqlc-graphql/internal"
 	"github.com/debugger84/sqlc-graphql/internal/opts"
 	"github.com/gkampitakis/go-snaps/snaps"
 	"github.com/sqlc-dev/plugin-sdk-go/plugin"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestGenerate(t *testing.T) {
@@ -148,6 +149,31 @@ func TestGenerate(t *testing.T) {
 					snaps.WithConfig(snaps.Ext("."+file.Name)).
 						MatchStandaloneSnapshot(t, string(file.Contents))
 					require.NotContains(t, string(file.Contents), "name:")
+				}
+			}
+		},
+	)
+
+	t.Run(
+		"Exclude type", func(t *testing.T) {
+			factory := NewGenReqFactory()
+			factory.options.Exclude = []string{"Author"}
+			req := factory.GenerateRequest()
+
+			resp, err := golang.Generate(ctx, req)
+
+			t.Log("Given the option to exclude the Author type is passed to the generator")
+			t.Log("When the generator is called")
+			t.Log("	Then the generator should return a response without an error")
+			require.NoError(t, err)
+			t.Log("	And the response should not contain Author type")
+			require.NotNil(t, resp)
+			require.Len(t, resp.Files, 2)
+			for _, file := range resp.Files {
+				if file.Name == "schema.graphql" {
+					snaps.WithConfig(snaps.Ext("."+file.Name)).
+						MatchStandaloneSnapshot(t, string(file.Contents))
+					require.NotContains(t, string(file.Contents), "type Author")
 				}
 			}
 		},
