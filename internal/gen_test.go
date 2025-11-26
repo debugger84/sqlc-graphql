@@ -36,6 +36,30 @@ func TestGenerate(t *testing.T) {
 	)
 
 	t.Run(
+		"Generate query with array type", func(t *testing.T) {
+			factory := NewGenReqFactory()
+			factory.columns[1].NotNull = false
+			factory.columns[1].IsArray = true
+			factory.columns[2].IsArray = true
+			req := factory.GenerateRequest()
+
+			resp, err := golang.Generate(ctx, req)
+
+			t.Log("Given the 'select * from authors' SQL query is passed to the generator")
+			t.Log("When the generator is called")
+			t.Log("	Then the generator should return a response without an error")
+			require.NoError(t, err)
+			t.Log("	And the response should contain the generated code")
+			require.NotNil(t, resp)
+			require.Len(t, resp.Files, 2)
+			snaps.WithConfig(snaps.Ext("."+resp.Files[0].Name)).
+				MatchStandaloneSnapshot(t, string(resp.Files[0].Contents))
+			snaps.WithConfig(snaps.Ext("."+resp.Files[1].Name)).
+				MatchStandaloneSnapshot(t, string(resp.Files[1].Contents))
+		},
+	)
+
+	t.Run(
 		"Rename GQL type without renaming Go Struct", func(t *testing.T) {
 			factory := NewGenReqFactory()
 			factory.options.Rename = map[string]string{

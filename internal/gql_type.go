@@ -2,10 +2,11 @@ package golang
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/debugger84/sqlc-graphql/internal/opts"
 	"github.com/sqlc-dev/plugin-sdk-go/plugin"
 	"github.com/sqlc-dev/plugin-sdk-go/sdk"
-	"strings"
 )
 
 type GqlField struct {
@@ -42,23 +43,23 @@ func gqlType(req *plugin.GenerateRequest, options *opts.Options, col *plugin.Col
 		if (oride.Column != "" && sdk.MatchString(oride.ColumnName, cname) && sameTable) ||
 			(col.Type != nil && col.Type.Name == typeName && col.Type.Schema == schema) {
 			tn := override.GqlType
+			if col.IsSqlcSlice || col.IsArray {
+				tn = fmt.Sprintf("[%s!]", tn)
+			}
 			if col.NotNull {
 				tn += "!"
-			}
-			if col.IsSqlcSlice {
-				tn = fmt.Sprintf("[%s]!", tn)
 			}
 
 			return tn
 		}
 	}
 	typ := gqlInnerType(req, options, col)
+
+	if col.IsSqlcSlice || col.IsArray {
+		typ = fmt.Sprintf("[%s!]", typ)
+	}
 	if col.NotNull {
 		return typ + "!"
-	}
-
-	if col.IsSqlcSlice {
-		return fmt.Sprintf("[%s]!", typ)
 	}
 	return typ
 }
